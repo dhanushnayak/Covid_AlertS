@@ -1,0 +1,18 @@
+{% extends "user/index.html" %}
+{% load crispy_forms_tags %}
+{% block start %}
+
+ <div class="content-section col-md-8 col-md-offset-2">
+  <center>
+<form action="update/" method="post" enctype="multipart/form-data"> <!-- this line requered, otherwise your form won't take a photo -->
+    {% csrf_token %}
+    <table>
+        {{ form }}
+    </table>
+
+    <input type="submit" name="update" value="update">
+    <input type="submit" name="cancel" value="cancel">
+</form>
+</center>
+ </div>
+{% endblock start %}
