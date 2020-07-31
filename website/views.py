@@ -80,6 +80,11 @@ def location(request,Email,groupid,submail):
         curr=b.getlocation()
         closestation=Closestpolice.closestpolice(df1=sdf,df2=curr)
         feedback = mongo.getfeedback()
+        if not feedback:
+                feedback = None
+        policealert = mongo.GetPoliceAlert()
+        if not policealert:
+                policealert = None
         try:
                 name = request.GET.get('name', '')
                 place = request.GET.get("place",'')
@@ -100,14 +105,14 @@ def location(request,Email,groupid,submail):
                 
         if image != None and (request.GET.get('sendimage')):
                 try:
-                        mongo.Imagesupload(data=a.authDetails(),images=image)
+                        mongo.Imagesupload(data=a.authDetails(),location=b.getlocation(),images=image)
                         print("Done")
                         messages.success(request,"Uploaded/Submited")
                 except:
                         messages.warning(request, "NO Images TO submit")
                 
                 
-        return render(request,'index.html',{"pro":a.authDetails(),"group":member,"currentlocation":curr,"density":density,"station":station,"closestation":closestation,"feedback":feedback,"images":image})
+        return render(request,'index.html',{"pro":a.authDetails(),"group":member,"currentlocation":curr,"density":density,"station":station,"closestation":closestation,"feedback":feedback,"images":image,"policealert":policealert})
         #return HttpResponse("{}{}{}{}".format(a.authDetails(),member,b.getlocation(),density))
 def register(request):
         return HttpResponse("Use Mobile App to Register")

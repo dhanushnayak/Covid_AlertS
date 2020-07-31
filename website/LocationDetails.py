@@ -62,13 +62,15 @@ class MongoData():
         fd.insert_one(d)
         del fd,d,location,geolocator
         return True
-    def Imagesupload(self,data,images):
+    def Imagesupload(self,data,location,images):
         fd = self.db['Imagereported']
         d={}
         d['Date']=datetime.datetime.now().strftime("%x")
         d['Name'] = data['Name']
         d["Email"]=data['email']
         d['Phone'] = data['phone']
+        d['Profile_image']=data['image_url']
+        d['location']=location
         d['Images']= [i for i in images]
         fd.insert_one(d)
         del fd,d
@@ -82,6 +84,14 @@ class MongoData():
         df = pd.DataFrame(l)
         df=df[df['Date']==datetime.datetime.now().strftime("%x")].drop(["_id","Date"],axis=1)
         
+        return list(df.T.to_dict().values())
+    def GetPoliceAlert(self):
+        fd = self.db['Policealert']
+        l=[]
+        for i in fd.find():
+            l.append(i)
+        df = pd.DataFrame(l)
+        df=df[df['Date']==datetime.datetime.now().strftime("%x")].drop(["_id","Date"],axis=1)
         return list(df.T.to_dict().values())
    
 class Df_to_geojson:

@@ -40,7 +40,14 @@
         border-radius: 50%;
         cursor: pointer;
     }
-
+     #marker1 {
+        background-image: url('https://thumbs.gfycat.com/ImpoliteTepidCrab.webp');
+        background-size: cover;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        cursor: pointer;
+    }
     .mapboxgl-popup {
         max-width: 200px;
     }
@@ -680,6 +687,24 @@ map.addLayer({
     // create DOM element for the marker
     var el = document.createElement('div');
     el.id = 'marker';
+
+    // create the marker
+    new mapboxgl.Marker(el)
+        .setLngLat([{{feed.longitude|safe}},{{feed.latitude|safe}}])
+        .setPopup(popup) // sets a popup on this marker
+        .addTo(map);
+
+
+{% endfor %}
+//-----------------------------------------------------
+{% for feed in policealert %}
+ var popup = new mapboxgl.Popup({ offset: 25 }).setText(
+        '{{feed.crime|safe}}'
+    );
+
+    // create DOM element for the marker
+    var el = document.createElement('div');
+    el.id = 'marker1';
 
     // create the marker
     new mapboxgl.Marker(el)
