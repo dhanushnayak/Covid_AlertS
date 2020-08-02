@@ -1,0 +1,2217 @@
+{% extends 'admin/index.html' %}
+{% block content %}
+
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.css" rel="stylesheet" />
+
+<style>
+  #marker {
+        background-image: url('https://thumbs.gfycat.com/PointedAlienatedCassowary.webp');
+        background-size: cover;
+        width: 25px;
+        height: 25px;
+        border-radius: 100%;
+        cursor: pointer;
+    }
+     #marker1 {
+        background-image: url('https://thumbs.gfycat.com/ImpoliteTepidCrab.webp');
+        background-size: cover;
+        width: 50px;
+        height: 50px;
+        border-radius: 100%;
+        cursor: pointer;
+    }
+     #marker2 {
+        background-image: url('https://www.cybereason.com/hs-fs/hubfs/threat-alerts/threat-alert-badge-yellow.png?width=669&height=635&name=threat-alert-badge-yellow.png');
+        background-size: cover;
+        width: 50px;
+        height: 50px;
+        border-radius: 100%;
+        cursor: pointer;
+    }
+    .mapboxgl-popup {
+        max-width: 200px;
+    }
+</style>
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0 text-gray-800">Map</h1>
+            <a href="/user/{{auth.email}}/{{auth.GroupId}}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i class="fas fa-eye"></i> Quit Tracking</a>
+          </div>
+          <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.js"></script>
+<link
+rel="stylesheet"
+href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.css"
+type="text/css"
+/>
+         <div id="comparison-container">
+<div id="before" class="map"></div>
+<div id="distance" class="distance-container"></div>
+<div id="after" class="map"></div>
+</div>
+<style>
+body {
+overflow: hidden;
+}
+ 
+body * {
+-webkit-touch-callout: none;
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+}
+ 
+.map {
+position: absolute;
+top: 14%;
+bottom: 0;
+width: 86%;
+height: 80%;
+}
+.distance-container {
+position: absolute;
+top: 10px;
+left: 10px;
+z-index: 1;
+}
+ 
+.distance-container > * {
+background-color: rgba(0, 0, 0, 0.5);
+color: #fff;
+font-size: 11px;
+line-height: 18px;
+display: block;
+margin: 0;
+padding: 5px 10px;
+border-radius: 3px;
+}
+</style>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-compare/v0.4.0/mapbox-gl-compare.js"></script>
+<link
+rel="stylesheet"
+href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-compare/v0.4.0/mapbox-gl-compare.css"
+type="text/css"
+/>
+
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoiZGhhbnVzaDEyIiwiYSI6ImNrNWQ2dXUydzAxNXAzaG1rZnlkdHk2dmoifQ.VKYYsyeMMBT7w0lp1T_Iqg';
+var beforeMap = new mapboxgl.Map({
+container: 'before',
+style: 'mapbox://styles/mapbox/streets-v11',
+center: {{currentlocation|safe}},
+zoom: 13
+});
+ 
+var afterMap = new mapboxgl.Map({
+container: 'after',
+style: 'mapbox://styles/mapbox/dark-v10',
+center: {{currentlocation|safe}},
+zoom: 13
+});
+ 
+// A selector or reference to HTML element
+var container = '#comparison-container';
+ 
+var map = new mapboxgl.Compare(beforeMap, afterMap, container, {
+// Set this to enable comparing two maps by mouse movement:
+// mousemove: true
+});
+
+//--------------------------------------------beforeMapstation-----------------------------------
+beforeMap.on('load', function() {
+        beforeMap.addSource('places', {
+            'type': 'geojson',
+            'data': {{station|safe}}
+        });
+        // Add a layer showing the places.
+        beforeMap.addLayer({
+            'id': 'places',
+            'type': 'symbol',
+            'source': 'places',
+            'layout': {
+                'icon-image': '{icon}-15',
+                'icon-allow-overlap': true
+            }
+        });
+
+        // When a click event occurs on a feature in the places layer, open a popup at the
+        // location of the feature, with description HTML from its properties.
+        beforeMap.on('click', 'places', function(e) {
+            var coordinates = e.features[0].geometry.coordinates.slice();
+            var description = e.features[0].properties.description;
+
+            // Ensure that if the map is zoomed out such that multiple
+            // copies of the feature are visible, the popup appears
+            // over the copy being pointed to.
+            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+            }
+
+            new mapboxgl.Popup()
+                .setLngLat(coordinates)
+                .setHTML(description)
+                .addTo(beforeMap);
+        });
+
+        // Change the cursor to a pointer when the mouse is over the places layer.
+        beforeMap.on('mouseenter', 'places', function() {
+            beforeMap.getCanvas().style.cursor = 'pointer';
+        });
+
+        // Change it back to a pointer when it leaves.
+        beforeMap.on('mouseleave', 'places', function() {
+            beforeMap.getCanvas().style.cursor = '';
+        });
+    });
+//----------------------------------------------Aftermapstation----------------------------------
+
+afterMap.on('load', function() {
+        afterMap.addSource('places', {
+            'type': 'geojson',
+            'data': {{station|safe}}
+        });
+        // Add a layer showing the places.
+        afterMap.addLayer({
+            'id': 'places',
+            'type': 'symbol',
+            'source': 'places',
+            'layout': {
+                'icon-image': '{icon}-15',
+                'icon-allow-overlap': true
+            }
+        });
+
+        // When a click event occurs on a feature in the places layer, open a popup at the
+        // location of the feature, with description HTML from its properties.
+        afterMap.on('click', 'places', function(e) {
+            var coordinates = e.features[0].geometry.coordinates.slice();
+            var description = e.features[0].properties.description;
+
+            // Ensure that if the map is zoomed out such that multiple
+            // copies of the feature are visible, the popup appears
+            // over the copy being pointed to.
+            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+            }
+
+            new mapboxgl.Popup()
+                .setLngLat(coordinates)
+                .setHTML(description)
+                .addTo(afterMap);
+        });
+
+        // Change the cursor to a pointer when the mouse is over the places layer.
+        afterMap.on('mouseenter', 'places', function() {
+            afterMap.getCanvas().style.cursor = 'pointer';
+        });
+
+        // Change it back to a pointer when it leaves.
+        afterMap.on('mouseleave', 'places', function() {
+            afterMap.getCanvas().style.cursor = '';
+        });
+    });
+
+
+
+
+//-------------------------------------------currentlocation--------------------------------------
+var size = 200;
+ 
+// implementation of CustomLayerInterface to draw a pulsing dot icon on the map
+// see https://docs.mapbox.com/mapbox-gl-js/api/#customlayerinterface for more info
+var pulsingDot = {
+width: size,
+height: size,
+data: new Uint8Array(size * size * 4),
+ 
+// get rendering context for the map canvas when layer is added to the map
+onAdd: function() {
+var canvas = document.createElement('canvas');
+canvas.width = this.width;
+canvas.height = this.height;
+this.context = canvas.getContext('2d');
+},
+ 
+// called once before every frame where the icon will be used
+render: function() {
+var duration = 1000;
+var t = (performance.now() % duration) / duration;
+ 
+var radius = (size / 2) * 0.3;
+var outerRadius = (size / 2) * 0.7 * t + radius;
+var context = this.context;
+ 
+// draw outer circle
+context.clearRect(0, 0, this.width, this.height);
+context.beginPath();
+context.arc(
+this.width / 2,
+this.height / 2,
+outerRadius,
+0,
+Math.PI * 2
+);
+context.fillStyle = 'rgba(255, 200, 200,' + (1 - t) + ')';
+context.fill();
+ 
+// draw inner circle
+context.beginPath();
+context.arc(
+this.width / 2,
+this.height / 2,
+radius,
+0,
+Math.PI * 2
+);
+context.fillStyle = 'rgba(255, 100, 100, 1)';
+context.strokeStyle = 'white';
+context.lineWidth = 2 + 4 * (1 - t);
+context.fill();
+context.stroke();
+ 
+// update this image's data with data from the canvas
+this.data = context.getImageData(
+0,
+0,
+this.width,
+this.height
+).data;
+ 
+// continuously repaint the map, resulting in the smooth animation of the dot
+afterMap.triggerRepaint();
+ 
+// return `true` to let the map know that the image was updated
+return true;
+}
+};
+ 
+afterMap.on('load', function() {
+afterMap.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
+ 
+afterMap.addSource('points', {
+'type': 'geojson',
+'data': {
+'type': 'FeatureCollection',
+'features': [
+{
+'type': 'Feature',
+'geometry': {
+'type': 'Point',
+'coordinates': {{currentlocation|safe}}
+}
+}
+]
+}
+});
+afterMap.addLayer({
+'id': 'points',
+'type': 'symbol',
+'source': 'points',
+'layout': {
+'icon-image': 'pulsing-dot'
+}
+});
+});
+
+var size = 200;
+ 
+// implementation of CustomLayerInterface to draw a pulsing dot icon on the map
+// see https://docs.mapbox.com/mapbox-gl-js/api/#customlayerinterface for more info
+var pulsingDot = {
+width: size,
+height: size,
+data: new Uint8Array(size * size * 4),
+ 
+// get rendering context for the map canvas when layer is added to the map
+onAdd: function() {
+var canvas = document.createElement('canvas');
+canvas.width = this.width;
+canvas.height = this.height;
+this.context = canvas.getContext('2d');
+},
+ 
+// called once before every frame where the icon will be used
+render: function() {
+var duration = 1000;
+var t = (performance.now() % duration) / duration;
+ 
+var radius = (size / 2) * 0.3;
+var outerRadius = (size / 2) * 0.7 * t + radius;
+var context = this.context;
+ 
+// draw outer circle
+context.clearRect(0, 0, this.width, this.height);
+context.beginPath();
+context.arc(
+this.width / 2,
+this.height / 2,
+outerRadius,
+0,
+Math.PI * 2
+);
+context.fillStyle = 'rgba(255, 200, 200,' + (1 - t) + ')';
+context.fill();
+ 
+// draw inner circle
+context.beginPath();
+context.arc(
+this.width / 2,
+this.height / 2,
+radius,
+0,
+Math.PI * 2
+);
+context.fillStyle = 'rgba(255, 100, 100, 1)';
+context.strokeStyle = 'white';
+context.lineWidth = 2 + 4 * (1 - t);
+context.fill();
+context.stroke();
+ 
+// update this image's data with data from the canvas
+this.data = context.getImageData(
+0,
+0,
+this.width,
+this.height
+).data;
+ 
+beforeMap.triggerRepaint();
+ 
+// return `true` to let the map know that the image was updated
+return true;
+}
+};
+ 
+beforeMap.on('load', function() {
+beforeMap.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
+ 
+beforeMap.addSource('points', {
+'type': 'geojson',
+'data': {
+'type': 'FeatureCollection',
+'features': [
+{
+'type': 'Feature',
+'geometry': {
+'type': 'Point',
+'coordinates': {{currentlocation|safe}}
+}
+}
+]
+}
+});
+beforeMap.addLayer({
+'id': 'points',
+'type': 'symbol',
+'source': 'points',
+'layout': {
+'icon-image': 'pulsing-dot'
+}
+});
+});
+
+//-------------------------Density----------------------------------------
+  beforeMap.addControl(new mapboxgl.NavigationControl());
+
+    // filters for classifying earthquakes into five categories based on magnitude
+    var mag1 = ['<', ['get', 'mag'], 2];
+    var mag2 = ['all', ['>=', ['get', 'mag'], 2], ['<', ['get', 'mag'], 3]];
+    var mag3 = ['all', ['>=', ['get', 'mag'], 3], ['<', ['get', 'mag'], 4]];
+    var mag4 = ['all', ['>=', ['get', 'mag'], 4], ['<', ['get', 'mag'], 5]];
+    var mag5 = ['>=', ['get', 'mag'], 5];
+
+    // colors to use for the categories
+    var colors = ['#fed976', '#feb24c', '#fd8d3c', '#fc4e2a', '#e31a1c'];
+
+    beforeMap.on('load', function() {
+        // add a clustered GeoJSON source for a sample set of earthquakes
+        beforeMap.addSource('earthquakes', {
+            'type': 'geojson',
+            'data':
+                {'type': 'FeatureCollection',
+ 'crs': {'type': 'name',
+  'properties': {'name': 'urn:ogc:def:crs:OGC:1.3:CRS84'}},
+ 'features': [{'type': 'Feature',
+   'properties': {'id': 'de8a9633c2e9433a9ac3a73aee479379', 'mag': 0.69},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3095674, 12.9468593, 146.2]}},
+  {'type': 'Feature',
+   'properties': {'id': '956717782bb148879f139088757a58ee', 'mag': 7.62},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7335794, 12.9820217, 588.4]}},
+  {'type': 'Feature',
+   'properties': {'id': '75bcf00596214df98a2aa8f84bfafc79', 'mag': 7.07},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5716719, 12.9606132, 712.4]}},
+  {'type': 'Feature',
+   'properties': {'id': '52b509bafd8e43939dd7d54f89dc03c5', 'mag': 8.16},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 49.18]}},
+  {'type': 'Feature',
+   'properties': {'id': '3dfba0cea61642fe93112614bf6f2346', 'mag': 3.15},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7172842, 13.1548531, 121.63]}},
+  {'type': 'Feature',
+   'properties': {'id': '99f5eac029564e6da1e0c61159dae4d7', 'mag': 3.41},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5402044, 12.9437456, 167.57]}},
+  {'type': 'Feature',
+   'properties': {'id': '2605c8459e6740d8aec28beb3d6b7c46', 'mag': 9.81},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3371738, 12.6486807, 153.64]}},
+  {'type': 'Feature',
+   'properties': {'id': '309435ebedc346e7a34b8df4b27dff20', 'mag': 2.89},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6687093, 13.1331868, 104.58]}},
+  {'type': 'Feature',
+   'properties': {'id': 'af2271cc1d844964a27a52f2e356072a', 'mag': 8.34},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 402.65]}},
+  {'type': 'Feature',
+   'properties': {'id': '12cde1bdab7a442aa5af05e35cdc6168', 'mag': 3.69},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.8215974, 13.1819797, 30.93]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b056b6ea39114de3a06f1c76e280d3c8', 'mag': 7.75},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7200164, 13.0721257, 170.82]}},
+  {'type': 'Feature',
+   'properties': {'id': '730e023ad61748d699d1aee6879b6302', 'mag': 5.52},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5066675, 13.2172845, 585.52]}},
+  {'type': 'Feature',
+   'properties': {'id': '781c9b68422742a7abf997d930604fe8', 'mag': 4.08},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7493845, 13.2126844, 801.62]}},
+  {'type': 'Feature',
+   'properties': {'id': '0f1aec64ff294ba7842f84768959d7ed', 'mag': 7.71},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7683853, 12.9804938, 860.68]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f2d9425f9b5d4aab9252aeeb26034909', 'mag': 2.89},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6345704, 13.1715801, 152.79]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f6e7868132d44613a8a3a2eb656aed4f', 'mag': 5.64},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9027211, 13.1315987, 39.99]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a931c34bd5634b11889fb76d19bb3042', 'mag': 0.98},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 24.42]}},
+  {'type': 'Feature',
+   'properties': {'id': '789627dbfc5545689c4706f5cb6dc739', 'mag': 1.84},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 85.1]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e84c58e012b64275b96bb69959edf3b6', 'mag': 1.16},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4364795, 13.0758896, 441.03]}},
+  {'type': 'Feature',
+   'properties': {'id': '2d10a5c8deb44116a94bab932e0c6b8d', 'mag': 8.11},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5289978, 13.1679457, 37.02]}},
+  {'type': 'Feature',
+   'properties': {'id': '9edf885def864ddba9065a52ef277b4f', 'mag': 9.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6520502, 13.1767348, 32.3]}},
+  {'type': 'Feature',
+   'properties': {'id': '653551672e7b458f917b73ba565bc5af', 'mag': 2.03},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9556435, 13.0894237, 72.68]}},
+  {'type': 'Feature',
+   'properties': {'id': 'decc806559cd4c95a4c72014d1b60622', 'mag': 5.13},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3095674, 12.9468593, 867.16]}},
+  {'type': 'Feature',
+   'properties': {'id': '6a889117df2d4a2dabc5c68c65ccdf45', 'mag': 8.74},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7335794, 12.9820217, 49.62]}},
+  {'type': 'Feature',
+   'properties': {'id': '6527e0bd62194c63936bfb9373cd2ff8', 'mag': 8.4},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5716719, 12.9606132, 0.52]}},
+  {'type': 'Feature',
+   'properties': {'id': '96517d7bad6d4881a0a1965ab01de0b9', 'mag': 2.48},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 62.36]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a857414f4b674c979f47f8c489f54d52', 'mag': 2.58},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7172842, 13.1548531, 376.45]}},
+  {'type': 'Feature',
+   'properties': {'id': '46b866c739ec441f8be0d3f2fd55aa42', 'mag': 9.65},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5402044, 12.9437456, 395.27]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd61401ff5c334ab5af514fa03ba91af3', 'mag': 1.85},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3371738, 12.6486807, 458.83]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd125740c9f984b3cbc67ef1a6580bd4c', 'mag': 6.21},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6687093, 13.1331868, 66.18]}},
+  {'type': 'Feature',
+   'properties': {'id': '851e940a884b479685bc64495627c233', 'mag': 3.66},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 484.8]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bee88cb13c8940638c354c9b31aa2cdf', 'mag': 5.55},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.8215974, 13.1819797, 140.09]}},
+  {'type': 'Feature',
+   'properties': {'id': '782d1801d24c452481249353b1d9f0ef', 'mag': 2.34},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7200164, 13.0721257, 481.8]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c723445735df47f6b9803dca344ba232', 'mag': 4.7},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5066675, 13.2172845, 93.82]}},
+  {'type': 'Feature',
+   'properties': {'id': '87fcc7d95b3b4198b58d788edb7a981c', 'mag': 1.21},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7493845, 13.2126844, 241.58]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c5946e9aa899401eb57713b05a9b45f9', 'mag': 4.8},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7683853, 12.9804938, 733.5]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b2ff0ea8142c456582e8fd92f1265c95', 'mag': 1.48},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6345704, 13.1715801, 112.22]}},
+  {'type': 'Feature',
+   'properties': {'id': '323a0143238b49bca70d9412d3f47f69', 'mag': 5.3},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9027211, 13.1315987, 128.91]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f8d8b67a79294c668f757875612c4e5b', 'mag': 6.95},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 285.26]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a98c89bbb9274aa6b0bcf5e00c34d035', 'mag': 1.16},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 146.54]}},
+  {'type': 'Feature',
+   'properties': {'id': '420295e7c8304de89127a919d852b148', 'mag': 4.48},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4364795, 13.0758896, 87.76]}},
+  {'type': 'Feature',
+   'properties': {'id': '83dd6dcc4f30428a95ba3b60e07c623b', 'mag': 9.64},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5289978, 13.1679457, 891.02]}},
+  {'type': 'Feature',
+   'properties': {'id': '1d6bb626d1c2471f80e9fea80b0f7d5a', 'mag': 6.14},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6520502, 13.1767348, 512.88]}},
+  {'type': 'Feature',
+   'properties': {'id': '90776d5331fd44248f6ddf1f1cbeadb3', 'mag': 5.13},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9556435, 13.0894237, 78.34]}},
+  {'type': 'Feature',
+   'properties': {'id': '666f0e61769a42bd8c190d6c063cbc8a', 'mag': 7.25},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3095674, 12.9468593, 10.54]}},
+  {'type': 'Feature',
+   'properties': {'id': '5f58e2be9a8647d6890759d7695c9395', 'mag': 1.78},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7335794, 12.9820217, 470.46]}},
+  {'type': 'Feature',
+   'properties': {'id': '303216ec92894868bd60699ff0a82e43', 'mag': 9.59},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5716719, 12.9606132, 698.65]}},
+  {'type': 'Feature',
+   'properties': {'id': 'dc88982f53a34d549e977758aa0f61ad', 'mag': 4.14},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 705.49]}},
+  {'type': 'Feature',
+   'properties': {'id': '8e9aed483f354099b817d08f5152820f', 'mag': 1.15},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7172842, 13.1548531, 495.29]}},
+  {'type': 'Feature',
+   'properties': {'id': '5dd37b850f5c4c1c82b1430fc7aa6c5f', 'mag': 2.73},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5402044, 12.9437456, 443.79]}},
+  {'type': 'Feature',
+   'properties': {'id': '06a0ec3f3a274c2493429e4cbdd70741', 'mag': 6.4},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3371738, 12.6486807, 243.52]}},
+  {'type': 'Feature',
+   'properties': {'id': '72ae4e10cbdf4b879fcbf5cec2cf0344', 'mag': 3.43},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6687093, 13.1331868, 129.88]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a5b19145707549ed96cbdf21aa30dcdb', 'mag': 9.49},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 20.64]}},
+  {'type': 'Feature',
+   'properties': {'id': '8e14a138a5574a27aea7ccc81b4e0128', 'mag': 5.95},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.8215974, 13.1819797, 62.14]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fb9b1554187d4650825c429ba83f405c', 'mag': 2.97},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7200164, 13.0721257, 264.13]}},
+  {'type': 'Feature',
+   'properties': {'id': '8faef60ccea5443f9bfcf3b0d86fe811', 'mag': 0.5},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5066675, 13.2172845, 746.27]}},
+  {'type': 'Feature',
+   'properties': {'id': '53f471c3e91c48da88be0532dfabad13', 'mag': 3.42},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7493845, 13.2126844, 146.05]}},
+  {'type': 'Feature',
+   'properties': {'id': '2a9bdb0cc6194cd3a49f272e4dd593c6', 'mag': 9.63},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7683853, 12.9804938, 129.98]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fbbe64eb06b148a487ac2a2aad5a8cd9', 'mag': 6.24},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6345704, 13.1715801, 133.16]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c50267477e7b4033808e1a52059df591', 'mag': 9.47},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9027211, 13.1315987, 321.89]}},
+  {'type': 'Feature',
+   'properties': {'id': '8fa7203e63274390b0ef1c566f6b9c24', 'mag': 4.69},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 391.74]}},
+  {'type': 'Feature',
+   'properties': {'id': 'aeb0a98d405441c89187b8c59f8a5159', 'mag': 6.7},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 708.63]}},
+  {'type': 'Feature',
+   'properties': {'id': '0da409b0649e4051a365bcbb31894ac2', 'mag': 3.35},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4364795, 13.0758896, 590.7]}},
+  {'type': 'Feature',
+   'properties': {'id': '83cf983276dd46d6a0b649878be8b9e1', 'mag': 4.84},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5289978, 13.1679457, 262.91]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f4088833c6d941fb8767643468f15f9a', 'mag': 1.34},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6520502, 13.1767348, 79.6]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b079928e698540078a71935955659d82', 'mag': 8.24},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9556435, 13.0894237, 16.01]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f31ef9ba5fc141a1a6a07b474774709d', 'mag': 0.08},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3095674, 12.9468593, 114.9]}},
+  {'type': 'Feature',
+   'properties': {'id': '4b189b8d9215494189b1c03d4b77d812', 'mag': 7.43},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7335794, 12.9820217, 191.85]}},
+  {'type': 'Feature',
+   'properties': {'id': 'be63cdd092d84e1b92305d88b284031d', 'mag': 1.79},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5716719, 12.9606132, 60.67]}},
+  {'type': 'Feature',
+   'properties': {'id': 'cda54675071a4cd0a7e92bddcbf32f2a', 'mag': 9.89},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 343.38]}},
+  {'type': 'Feature',
+   'properties': {'id': '51ebad1a8db04b9ab8c8ab4d80589877', 'mag': 0.59},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7172842, 13.1548531, 234.89]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e8cc171598984394998fc5210514ca42', 'mag': 4.99},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5402044, 12.9437456, 534.34]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c12e34ac6e854309b185e882212742a5', 'mag': 6.54},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3371738, 12.6486807, 416.74]}},
+  {'type': 'Feature',
+   'properties': {'id': '290e129b76564c03aa6b33f97b7f14b5', 'mag': 9.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6687093, 13.1331868, 81.22]}},
+  {'type': 'Feature',
+   'properties': {'id': '9850b6d5d9de4d478c0b12f72a8578fd', 'mag': 2.8},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 565.63]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fafc1fbfb96d460891050ae695ed63bb', 'mag': 4.3},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.8215974, 13.1819797, 728.15]}},
+  {'type': 'Feature',
+   'properties': {'id': '19f1d41edc87425d98417e56c691721b', 'mag': 5.44},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7200164, 13.0721257, 46.83]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e37a20ec49c347fa85fe30a74e7ebb73', 'mag': 6.12},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5066675, 13.2172845, 154.87]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ad61ba32cbf24e0384289234cf04644a', 'mag': 1.4},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7493845, 13.2126844, 610.08]}},
+  {'type': 'Feature',
+   'properties': {'id': '8bbed29290504b9ba79f4bd0c9fefc20', 'mag': 5.92},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7683853, 12.9804938, 223.52]}},
+  {'type': 'Feature',
+   'properties': {'id': '208a41cc9fd44b21beffdb11c0fc4827', 'mag': 7.43},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6345704, 13.1715801, 376.58]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ef9b58172fef43ca8ac6886cbfc4b215', 'mag': 2.27},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9027211, 13.1315987, 37.49]}},
+  {'type': 'Feature',
+   'properties': {'id': '6fd85d2ba011406d9020d24544c27fb1', 'mag': 0.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 642.9]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a54ca97a526b44d988d5dce4c67ef50c', 'mag': 3.29},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 217.12]}},
+  {'type': 'Feature',
+   'properties': {'id': '1b053e066a9f465b8fb3588b2c5f24e1', 'mag': 0.82},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4364795, 13.0758896, 193.76]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f98addfb942e4e808f6987de3fd76066', 'mag': 6.7},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5289978, 13.1679457, 78.23]}},
+  {'type': 'Feature',
+   'properties': {'id': '5f3a73ad4a4444f5884cc94b1e8fefb8', 'mag': 6.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6520502, 13.1767348, 66.88]}},
+  {'type': 'Feature',
+   'properties': {'id': '5267750039ee47a583c3b2b27490db38', 'mag': 1.32},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9556435, 13.0894237, 121.4]}},
+  {'type': 'Feature',
+   'properties': {'id': '6e3c94eaad5e4c2c8ff1de7c49777c6c', 'mag': 4.61},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6041603, 12.9626925, 51.01]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e2c9abfa770447f1b236973497a92e2b', 'mag': 9.72},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6152935, 12.9612736, 640.84]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ac5bd76474da476cb58ca2f8e598dd35', 'mag': 2.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6273767, 12.9802093, 572.76]}},
+  {'type': 'Feature',
+   'properties': {'id': '1b9921a7b72d482988c4faa126a9bf9d', 'mag': 6.77},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6130165, 12.996845, 104.19]}},
+  {'type': 'Feature',
+   'properties': {'id': '515e75713a764224b54a67d5d4f25b7d', 'mag': 6.11},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6208684, 12.9954832, 244.16]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ec2aa9e948a84c829f861d8dc60beb79', 'mag': 8.46},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6381958, 12.9624669, 68.32]}},
+  {'type': 'Feature',
+   'properties': {'id': '9bc9029f69d34994b7e80713fb758ac6', 'mag': 6.2},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6404672, 12.9732913, 226.72]}},
+  {'type': 'Feature',
+   'properties': {'id': 'db86b7586017456a8d7bcc44754e7e6a', 'mag': 0.63},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5703253, 13.0027353, 304.35]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd42974aed32346e980c68b415d1cdb95', 'mag': 5.39},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.578642, 12.9680027, 129.17]}},
+  {'type': 'Feature',
+   'properties': {'id': '6f328d8ca1b04af1bd48d9acb086dd34', 'mag': 6.34},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5774884, 12.9599061, 83.87]}},
+  {'type': 'Feature',
+   'properties': {'id': '4952c5fb9f824431a4c57ee3f5b9fe51', 'mag': 1.28},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5789181, 12.9684724, 527.31]}},
+  {'type': 'Feature',
+   'properties': {'id': '3a8e280e08b4486997ab74894e38722d', 'mag': 9.8},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5795893, 13.0077079, 188.1]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd7c6d3dc323743958e9f60ec0b8008cf', 'mag': 1.73},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5753419, 12.9931876, 14.71]}},
+  {'type': 'Feature',
+   'properties': {'id': 'cdac5fc0ad24472db5751c26bdc7dfad', 'mag': 6.33},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6075416, 12.986391, 65.06]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f4e81db510c3459fab19ad4d16d87c53', 'mag': 5.31},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6058685051562, 12.98506045, 374.42]}},
+  {'type': 'Feature',
+   'properties': {'id': '94f65fcf7e76441ea398dd27a4ac5e69', 'mag': 6.06},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6246697, 12.9778793, 126.35]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd2b814492d5149c2bfb38911c1bb89ae', 'mag': 7.79},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.58516877601824, 12.988721250000001, 211.22]}},
+  {'type': 'Feature',
+   'properties': {'id': 'dc158fc77bde44ea9232f8d8ecdda990', 'mag': 6.41},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5948766, 12.9871119, 350.58]}},
+  {'type': 'Feature',
+   'properties': {'id': '4cff74e46a71466e81e98fe613959f74', 'mag': 7.3},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5912997, 12.9791198, 197.42]}},
+  {'type': 'Feature',
+   'properties': {'id': '8b2d2266765946b5877e67b4532ec08d', 'mag': 0.83},
+   'geometry': {'type': 'Point',
+    'coordinates': [80.1651978, 17.2510682, 393.59]}},
+  {'type': 'Feature',
+   'properties': {'id': '74ff223fb16d46deb081a0041b48662b', 'mag': 4.54},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7614229, 12.9963995, 79.43]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ce403d5e335b4487827435056f8a3b6f', 'mag': 7.94},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7162015, 12.9919033, 57.13]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e785eff1ba7d448d818212596817efb0', 'mag': 9.16},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.695935, 13.007516, 12.61]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c98fc8262d89408b9f02caba53589be7', 'mag': 0.65},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.692813, 12.99678075, 35.03]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd396b5d272e448e093cc40c46e72c633', 'mag': 9.43},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7205146, 13.0263229, 206.07]}},
+  {'type': 'Feature',
+   'properties': {'id': '7910623603d54e9f84533bdb0a9abc1d', 'mag': 7.76},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6984163, 12.9552572, 31.81]}},
+  {'type': 'Feature',
+   'properties': {'id': 'be796251cdc84c369edd220d9598d07b', 'mag': 2.08},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7469937, 12.9406152, 78.56]}},
+  {'type': 'Feature',
+   'properties': {'id': '304e1573c3bf4bb28bc6be04dce8a9d9', 'mag': 6.85},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6518539, 13.0141618, 359.65]}},
+  {'type': 'Feature',
+   'properties': {'id': '85fa4dbc40074893b70aaa89dc43fe64', 'mag': 9.14},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6323597, 13.0358698, 207.71]}},
+  {'type': 'Feature',
+   'properties': {'id': '628cbc0d08f048948cc3158ff009f7fa', 'mag': 3.45},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6601508, 13.0273312, 784.69]}},
+  {'type': 'Feature',
+   'properties': {'id': '20751352cf3f4d0a951b5b1008c8aa99', 'mag': 8.94},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6403368, 13.0221416, 299.52]}},
+  {'type': 'Feature',
+   'properties': {'id': '9312158b325e4ed087738f839d75e8a9', 'mag': 9.1},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6278288, 13.0117678, 295.95]}},
+  {'type': 'Feature',
+   'properties': {'id': '692abaaa8e774a5a863ebe4be271cb49', 'mag': 5.7},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6777817, 13.0120218, 407.39]}},
+  {'type': 'Feature',
+   'properties': {'id': '3bfffef86fa14d97b59ddfc93aa2f31d', 'mag': 5.25},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5919, 13.0382184, 379.43]}},
+  {'type': 'Feature',
+   'properties': {'id': '02f62b5ea21f4a6c908108b2aac0e608', 'mag': 9.28},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5483803, 13.0464531, 89.62]}},
+  {'type': 'Feature',
+   'properties': {'id': '6ebee50c0b8c44798fb5c9044315d380', 'mag': 2.43},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.557374, 13.0328884, 327.03]}},
+  {'type': 'Feature',
+   'properties': {'id': '572eb9aa7f264382b3a57857dd8b73dc', 'mag': 8.7},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5273253, 13.0329419, 71.16]}},
+  {'type': 'Feature',
+   'properties': {'id': '0e6bd6168f72447bacb68a262b01f9eb', 'mag': 3.4},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.595715, 13.0227204, 751.37]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bfe558c357c444b5a88128a47af53e01', 'mag': 3.25},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5577315, 13.0766407, 20.64]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bca61ea53b254995b49fb020412dad80', 'mag': 7.32},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5963454, 13.1006982, 621.49]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fdc06fe7676044ac9734574f95abee70', 'mag': 4.7},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.54768594156756, 13.021834550000001, 465.58]}},
+  {'type': 'Feature',
+   'properties': {'id': '2355876cc7ea422b93f2310078644884', 'mag': 1.24},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6239038, 12.9089453, 23.77]}},
+  {'type': 'Feature',
+   'properties': {'id': '4da88ae96c6048e0a00b4033f06804cd', 'mag': 1.47},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6916113, 12.8162443, 114.87]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f6a0002d07a74eee9013231415793b42', 'mag': 9.96},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6102821, 12.9151772, 22.68]}},
+  {'type': 'Feature',
+   'properties': {'id': '60aeb2175b434065afaea6200a025e74', 'mag': 7.67},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5912997, 12.9791198, 531.1]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c8c6d95f754d4e80ad8a40239f75f95a', 'mag': 1.13},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6388622, 12.9116225, 436.49]}},
+  {'type': 'Feature',
+   'properties': {'id': '1bab3e401028414ba2021e19aaf08ecb', 'mag': 0.25},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5824229, 12.9292731, 227.1]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c0d10c99ab3f43aa9b441f472b6caccd', 'mag': 4.31},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5912997, 12.9791198, 541.58]}},
+  {'type': 'Feature',
+   'properties': {'id': '86901f0d6ef540dfb36a530ae40770c5', 'mag': 3.18},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6179508, 12.9212269, 321.36]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c7cc429fc5a3484083056c2e72636c3c', 'mag': 8.87},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6222304, 12.9340114, 595.53]}},
+  {'type': 'Feature',
+   'properties': {'id': '4963ec6b0fac4fb993c96dcef70d0cf9', 'mag': 2.63},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5576723, 13.1726164, 46.61]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bb889bb8fc6d4c34b7e0cf9f852070fb', 'mag': 7.75},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5755021, 12.9417261, 167.95]}},
+  {'type': 'Feature',
+   'properties': {'id': 'de2570d7b21c42ec8fea72b704f3eaf5', 'mag': 2.79},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5444995, 12.9401439, 456.04]}},
+  {'type': 'Feature',
+   'properties': {'id': '66f70809c85843e89aa5c97f715c69aa', 'mag': 5.08},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5553179, 12.9081487, 267.3]}},
+  {'type': 'Feature',
+   'properties': {'id': '1912599d0fec42beb84547867367d173', 'mag': 4.41},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.55767110316643, 12.91814255, 90.21]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c76c521939454afc8882369916962c25', 'mag': 3.23},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5455438, 12.9055682, 80.64]}},
+  {'type': 'Feature',
+   'properties': {'id': '6d8a6e8b1ec04b0d865faca97ee85d23', 'mag': 5.69},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5580713, 12.8580811, 348.38]}},
+  {'type': 'Feature',
+   'properties': {'id': '2d449a55bf86469883f6496d014a8fb3', 'mag': 0.04},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 172.1]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fcbde89df3e2433498b7ac030f2b71e6', 'mag': 1.33},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 870.39]}},
+  {'type': 'Feature',
+   'properties': {'id': '105165cd2ce840209a02ffb8c2c40bf6', 'mag': 4.51},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5877237, 12.8565317, 20.12]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b07a318444e846b6a5471dd389f4df46', 'mag': 0.14},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6028031, 12.8773486, 152.73]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b8cd4a3d10bc4522bb6f638bed6a0ede', 'mag': 8.1},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5837252, 12.8742546, 45.39]}},
+  {'type': 'Feature',
+   'properties': {'id': '6a0445f2ba02467db3102e5325362564', 'mag': 4.35},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5391325, 12.9937572, 156.65]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e1fac395cb8b4551a3f06baf22d3dcc2', 'mag': 7.97},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5226376, 12.9823617, 273.05]}},
+  {'type': 'Feature',
+   'properties': {'id': '2bfe163076fc44769e35811a72c7163f', 'mag': 2.69},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4837568, 12.9176571, 0.9]}},
+  {'type': 'Feature',
+   'properties': {'id': '60d280a9116c4e2aa0d0a38cdd748a42', 'mag': 4.81},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5446972, 13.0113153, 160.57]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bcdc6da5dbe3470bb9684a6e6109855f', 'mag': 2.29},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5121724, 12.9546741, 533.2]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c2d82a93709d4e8cab2b2d7a449cf7a4', 'mag': 1.91},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5378032, 13.0104064, 3.18]}},
+  {'type': 'Feature',
+   'properties': {'id': '13b3e298227e416aae134d034c04ffb9', 'mag': 9.46},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5212118, 12.9413253, 104.77]}},
+  {'type': 'Feature',
+   'properties': {'id': '2cf14ad63414464dbab2ed87dee10c3a', 'mag': 0.29},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.554883, 12.9882338, 458.02]}},
+  {'type': 'Feature',
+   'properties': {'id': '0c6329f6f6db43fb9d5b38f453a4281b', 'mag': 8.87},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5155224, 12.9274413, 181.47]}},
+  {'type': 'Feature',
+   'properties': {'id': 'dd9df95046384389b0661db5822142de', 'mag': 4.66},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.54578883887129, 12.9718886, 72.04]}},
+  {'type': 'Feature',
+   'properties': {'id': '6985873573e74bee81ac9305b63be0e2', 'mag': 2.01},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7861352, 12.8600866, 110.73]}},
+  {'type': 'Feature',
+   'properties': {'id': '4c750a3955ed452ab525708c2aedc2bd', 'mag': 7.72},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3963586, 13.0953024, 198.31]}},
+  {'type': 'Feature',
+   'properties': {'id': '68d26b189d78422a9b011e2dde957191', 'mag': 8.85},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6380931, 12.7852528, 381.4]}},
+  {'type': 'Feature',
+   'properties': {'id': '06408b52c1f94e01895c12d87090e88b', 'mag': 1.38},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4783628, 13.1393984, 29.57]}},
+  {'type': 'Feature',
+   'properties': {'id': '6abb7b9323c74d638ae9a0358cb9d52c', 'mag': 2.38},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5079901351852, 13.0828877, 434.13]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c4bbfcc2a6ad4b9189be70ecdeea2b88', 'mag': 9.42},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6105247, 12.9221906, 424.38]}},
+  {'type': 'Feature',
+   'properties': {'id': '8e2ed41d0cae465594dc5d13d49522b5', 'mag': 9.99},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7062826, 12.8004439, 388.92]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b5910a9f57ab48bcbe9fbe887d86896c', 'mag': 7.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7712834, 12.7782588, 22.37]}}]},
+            'cluster': true,
+            'clusterRadius': 120,
+            'clusterProperties': {
+                // keep separate counts for each magnitude category in a cluster
+                'mag1': ['+', ['case', mag1, 1, 0]],
+                'mag2': ['+', ['case', mag2, 1, 0]],
+                'mag3': ['+', ['case', mag3, 1, 0]],
+                'mag4': ['+', ['case', mag4, 1, 0]],
+                'mag5': ['+', ['case', mag5, 1, 0]]
+            }
+        });
+        // circle and symbol layers for rendering individual earthquakes (unclustered points)
+        beforeMap.addLayer({
+            'id': 'earthquake_circle',
+            'type': 'circle',
+            'source': 'earthquakes',
+            'filter': ['!=', 'cluster', true],
+            'paint': {
+                'circle-color': [
+                    'case',
+                    mag1,
+                    colors[0],
+                    mag2,
+                    colors[1],
+                    mag3,
+                    colors[2],
+                    mag4,
+                    colors[3],
+                    colors[4]
+                ],
+                'circle-opacity': 0.6,
+                'circle-radius': 12
+            }
+        });
+        beforeMap.addLayer({
+            'id': 'earthquake_label',
+            'type': 'symbol',
+            'source': 'earthquakes',
+            'filter': ['!=', 'cluster', true],
+            'layout': {
+                'text-field': [
+                    'number-format',
+                    ['get', 'mag'],
+                    { 'min-fraction-digits': 1, 'max-fraction-digits': 1 }
+                ],
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-size': 10
+            },
+            'paint': {
+                'text-color': [
+                    'case',
+                    ['<', ['get', 'mag'], 3],
+                    'black',
+                    'white'
+                ]
+            }
+        });
+
+        // objects for caching and keeping track of HTML marker objects (for performance)
+        var markers = {};
+        var markersOnScreen = {};
+
+        function updateMarkers() {
+            var newMarkers = {};
+            var features = beforeMap.querySourceFeatures('earthquakes');
+
+            // for every cluster on the screen, create an HTML marker for it (if we didn't yet),
+            // and add it to the map if it's not there already
+            for (var i = 0; i < features.length; i++) {
+                var coords = features[i].geometry.coordinates;
+                var props = features[i].properties;
+                if (!props.cluster) continue;
+                var id = props.cluster_id;
+
+                var marker = markers[id];
+                if (!marker) {
+                    var el = createDonutChart(props);
+                    marker = markers[id] = new mapboxgl.Marker({
+                        element: el
+                    }).setLngLat(coords);
+                }
+                newMarkers[id] = marker;
+
+                if (!markersOnScreen[id]) marker.addTo(beforeMap);
+            }
+            // for every marker we've added previously, remove those that are no longer visible
+            for (id in markersOnScreen) {
+                if (!newMarkers[id]) markersOnScreen[id].remove();
+            }
+            markersOnScreen = newMarkers;
+        }
+
+        // after the GeoJSON data is loaded, update markers on the screen and do so on every map move/moveend
+        beforeMap.on('data', function(e) {
+            if (e.sourceId !== 'earthquakes' || !e.isSourceLoaded) return;
+
+            beforeMap.on('move', updateMarkers);
+            beforeMap.on('moveend', updateMarkers);
+            updateMarkers();
+        });
+    });
+
+    // code for creating an SVG donut chart from feature properties
+    function createDonutChart(props) {
+        var offsets = [];
+        var counts = [
+            props.mag1,
+            props.mag2,
+            props.mag3,
+            props.mag4,
+            props.mag5
+        ];
+        var total = 0;
+        for (var i = 0; i < counts.length; i++) {
+            offsets.push(total);
+            total += counts[i];
+        }
+        var fontSize =
+            total >= 1000 ? 22 : total >= 100 ? 20 : total >= 10 ? 18 : 16;
+        var r = total >= 1000 ? 50 : total >= 100 ? 32 : total >= 10 ? 24 : 18;
+        var r0 = Math.round(r * 0.6);
+        var w = r * 2;
+
+        var html =
+            '<div><svg width="' +
+            w +
+            '" height="' +
+            w +
+            '" viewbox="0 0 ' +
+            w +
+            ' ' +
+            w +
+            '" text-anchor="middle" style="font: ' +
+            fontSize +
+            'px sans-serif; display: block">';
+
+        for (i = 0; i < counts.length; i++) {
+            html += donutSegment(
+                offsets[i] / total,
+                (offsets[i] + counts[i]) / total,
+                r,
+                r0,
+                colors[i]
+            );
+        }
+        html +=
+            '<circle cx="' +
+            r +
+            '" cy="' +
+            r +
+            '" r="' +
+            r0 +
+            '" fill="white" /><text dominant-baseline="central" transform="translate(' +
+            r +
+            ', ' +
+            r +
+            ')">' +
+            total.toLocaleString() +
+            '</text></svg></div>';
+
+        var el = document.createElement('div');
+        el.innerHTML = html;
+        return el.firstChild;
+    }
+
+    function donutSegment(start, end, r, r0, color) {
+        if (end - start === 1) end -= 0.00001;
+        var a0 = 2 * Math.PI * (start - 0.25);
+        var a1 = 2 * Math.PI * (end - 0.25);
+        var x0 = Math.cos(a0),
+            y0 = Math.sin(a0);
+        var x1 = Math.cos(a1),
+            y1 = Math.sin(a1);
+        var largeArc = end - start > 0.5 ? 1 : 0;
+
+        return [
+            '<path d="M',
+            r + r0 * x0,
+            r + r0 * y0,
+            'L',
+            r + r * x0,
+            r + r * y0,
+            'A',
+            r,
+            r,
+            0,
+            largeArc,
+            1,
+            r + r * x1,
+            r + r * y1,
+            'L',
+            r + r0 * x1,
+            r + r0 * y1,
+            'A',
+            r0,
+            r0,
+            0,
+            largeArc,
+            0,
+            r + r0 * x0,
+            r + r0 * y0,
+            '" fill="' + color + '" />'
+        ].join(' ');
+    }
+//-----------------------------------------feedbackofcrime---------------------
+{% for feed in feedback %}
+ var popup = new mapboxgl.Popup({ offset: 25 }).setText(
+        '{{feed.crime|safe}}'
+    );
+
+    // create DOM element for the marker
+    var el = document.createElement('div');
+    el.id = 'marker';
+
+    // create the marker
+    new mapboxgl.Marker(el)
+        .setLngLat([{{feed.longitude|safe}},{{feed.latitude|safe}}])
+        .setPopup(popup) // sets a popup on this marker
+        .addTo(beforeMap);
+
+
+{% endfor %}
+//------------------------------------------policecrime-------------------------------
+{% for feed in policealert %}
+ var popup = new mapboxgl.Popup({ offset: 25 }).setText(
+        '{{feed.crime|safe}}'
+    );
+
+    // create DOM element for the marker
+    var el = document.createElement('div');
+    el.id = 'marker1';
+
+    // create the marker
+    new mapboxgl.Marker(el)
+        .setLngLat([{{feed.longitude|safe}},{{feed.latitude|safe}}])
+        .setPopup(popup) // sets a popup on this marker
+        .addTo(beforeMap);
+
+
+{% endfor %}
+
+//-----------------------------------------nearcovd-----------------------------
+var popup = new mapboxgl.Popup({ closeOnClick: false })
+.setLngLat({{closestation|safe}})
+.setHTML('<h6>Near By PS</h6>')
+.addTo(beforeMap);
+
+var popup = new mapboxgl.Popup({ closeOnClick: false })
+.setLngLat({{closestation|safe}})
+.setHTML('<h6>Near By PS</h6>')
+.addTo(afterMap);
+//-----------------------------------------------Heat Map Of covid19-----------------------------------------------
+afterMap.on('load', function() {
+// Add a geojson point source.
+// Heatmap layers also work with a vector tile source.
+afterMap.addSource('earthquakes', {
+'type': 'geojson',
+'data':
+{'type': 'FeatureCollection',
+ 'crs': {'type': 'name',
+  'properties': {'name': 'urn:ogc:def:crs:OGC:1.3:CRS84'}},
+ 'features': [{'type': 'Feature',
+   'properties': {'id': '6bd7f4e69166474586d42009be2017de', 'mag': 8.44},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3095674, 12.9468593, 32.71]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a2dff49a214949b8ac2aabe342ea9a81', 'mag': 0.82},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7335794, 12.9820217, 874.11]}},
+  {'type': 'Feature',
+   'properties': {'id': '07f152f9fc674632bae6f9f1d50f506a', 'mag': 8.6},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5716719, 12.9606132, 191.12]}},
+  {'type': 'Feature',
+   'properties': {'id': '837239c894ea41c5af3ded8b592c0b55', 'mag': 1.82},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 237.27]}},
+  {'type': 'Feature',
+   'properties': {'id': '78d1670c85a444a9a102d527ec49cdce', 'mag': 2.64},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7172842, 13.1548531, 28.16]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c091e08c78d24a23a3bbcc6064c4fb0b', 'mag': 9.33},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5402044, 12.9437456, 630.13]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e61d5707ade34f8788860402ee87c611', 'mag': 5.57},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3371738, 12.6486807, 435.44]}},
+  {'type': 'Feature',
+   'properties': {'id': '36c8c248dad24410bd72802ae2e9e157', 'mag': 5.16},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6687093, 13.1331868, 178.93]}},
+  {'type': 'Feature',
+   'properties': {'id': '2c14a5549641463187003f30fb646a91', 'mag': 5.62},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 3.78]}},
+  {'type': 'Feature',
+   'properties': {'id': '13b39e3c04a34fe4a85a39c68ab92200', 'mag': 9.46},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.8215974, 13.1819797, 665.16]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd7d3541ce0e84daab574a9ec4eec9641', 'mag': 5.84},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7200164, 13.0721257, 501.45]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bbada07a3a3f4f488803586150b5f85b', 'mag': 3.95},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5066675, 13.2172845, 8.47]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b169893cf33c42b4974d0ecee8aca293', 'mag': 5.31},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7493845, 13.2126844, 166.39]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a73b901a5f2f4f59b237f233bcadc5c6', 'mag': 2.3},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7683853, 12.9804938, 487.62]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd07a40dfd8884e1ca51c208014f7dbed', 'mag': 6.32},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6345704, 13.1715801, 37.23]}},
+  {'type': 'Feature',
+   'properties': {'id': '79d4bc0f25c0435f9b2d52d559a1e0e8', 'mag': 6.54},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9027211, 13.1315987, 175.64]}},
+  {'type': 'Feature',
+   'properties': {'id': '5dadd13918cd452ab2b9152d4120cff7', 'mag': 9.47},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 179.08]}},
+  {'type': 'Feature',
+   'properties': {'id': '37508ca296b1412eba3541bce3c2ccc8', 'mag': 7.23},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 38.38]}},
+  {'type': 'Feature',
+   'properties': {'id': '41c3422852894c099521a0b6e3d6b2a9', 'mag': 4.96},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4364795, 13.0758896, 26.09]}},
+  {'type': 'Feature',
+   'properties': {'id': '6dbe88c78cae435f8873e3777e75f415', 'mag': 5.24},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5289978, 13.1679457, 8.76]}},
+  {'type': 'Feature',
+   'properties': {'id': '418b6ba5b4964ad1828d996c1f4f0775', 'mag': 3.8},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6520502, 13.1767348, 157.95]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bfc42d421a7145a88efb44f2fe5eac48', 'mag': 6.72},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9556435, 13.0894237, 18.98]}},
+  {'type': 'Feature',
+   'properties': {'id': '571848d8b8154c8a977f540896d01f14', 'mag': 6.98},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3095674, 12.9468593, 108.1]}},
+  {'type': 'Feature',
+   'properties': {'id': '10f954e798934c2db34b3b62df0cce1f', 'mag': 5.9},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7335794, 12.9820217, 332.41]}},
+  {'type': 'Feature',
+   'properties': {'id': '0018e218dd964666a0defbb1ec2f085e', 'mag': 6.1},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5716719, 12.9606132, 92.49]}},
+  {'type': 'Feature',
+   'properties': {'id': '52fc53914ea14ed99e76e67e4f7ab84c', 'mag': 6.62},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 261.74]}},
+  {'type': 'Feature',
+   'properties': {'id': '28957cb1b50147f496344534ba3c2509', 'mag': 4.52},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7172842, 13.1548531, 108.31]}},
+  {'type': 'Feature',
+   'properties': {'id': '2b45bb6eb6b7455ebdde85fc7b6ea008', 'mag': 5.46},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5402044, 12.9437456, 226.5]}},
+  {'type': 'Feature',
+   'properties': {'id': '649113ef50604f20829b3e872fedbb1a', 'mag': 2.4},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3371738, 12.6486807, 5.97]}},
+  {'type': 'Feature',
+   'properties': {'id': '804a12401cea4205945c5e61d21977e7', 'mag': 0.29},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6687093, 13.1331868, 457.56]}},
+  {'type': 'Feature',
+   'properties': {'id': '7a1a5099e54c49509029df962c384e54', 'mag': 5.47},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 260.73]}},
+  {'type': 'Feature',
+   'properties': {'id': '34c023ae36824526a62f3a7f0679e503', 'mag': 2.22},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.8215974, 13.1819797, 560.55]}},
+  {'type': 'Feature',
+   'properties': {'id': '7b81e05591ac4d67b5fc1fd4370c002c', 'mag': 3.87},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7200164, 13.0721257, 119.1]}},
+  {'type': 'Feature',
+   'properties': {'id': '1d6f0caedb034c90a71f8fee75442093', 'mag': 4.95},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5066675, 13.2172845, 204.97]}},
+  {'type': 'Feature',
+   'properties': {'id': '8b4994ee9d654e97883351b5243914df', 'mag': 2.3},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7493845, 13.2126844, 40.76]}},
+  {'type': 'Feature',
+   'properties': {'id': '5dc5e0d737df432a8dbeab21e9e4c6ec', 'mag': 8.49},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7683853, 12.9804938, 6.51]}},
+  {'type': 'Feature',
+   'properties': {'id': '6e3d826fc54d44a7ac84663a21c76d75', 'mag': 9.3},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6345704, 13.1715801, 30.45]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f02c05d9602b4d64b180c5bc05338bdc', 'mag': 7.48},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9027211, 13.1315987, 95.64]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fa106a7dd7b94d00853a761c936c9b7e', 'mag': 8.21},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 261.16]}},
+  {'type': 'Feature',
+   'properties': {'id': '651cc846eedd431192fd9c0c11556fd9', 'mag': 0.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 73.99]}},
+  {'type': 'Feature',
+   'properties': {'id': '157f9a8b2bfe46cd88c78749b2def575', 'mag': 0.34},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4364795, 13.0758896, 90.3]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f2e5309c6dec4961a36f29c408c10db1', 'mag': 7.76},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5289978, 13.1679457, 208.34]}},
+  {'type': 'Feature',
+   'properties': {'id': '19d720f0abc241fc8e03b2385891cf8c', 'mag': 5.05},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6520502, 13.1767348, 189.37]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b6b5e39f7f5c4dd5bb8d2df42e303365', 'mag': 1.39},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9556435, 13.0894237, 60.44]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f547057f1d074f72831de5468cf7dad7', 'mag': 7.97},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3095674, 12.9468593, 52.29]}},
+  {'type': 'Feature',
+   'properties': {'id': '373dc0cb55b24d5f92a679bb959096bc', 'mag': 4.98},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7335794, 12.9820217, 350.39]}},
+  {'type': 'Feature',
+   'properties': {'id': 'cbc78e5c386b4362894385be896f49b8', 'mag': 5.92},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5716719, 12.9606132, 137.92]}},
+  {'type': 'Feature',
+   'properties': {'id': '8c03d4a5650646038f06969197240480', 'mag': 6.83},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 6.88]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ff1cb26009ed4da2b4181b33c315e52b', 'mag': 8.07},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7172842, 13.1548531, 569.5]}},
+  {'type': 'Feature',
+   'properties': {'id': '46ce92b122134d448c66df35a30abb23', 'mag': 0.83},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5402044, 12.9437456, 2.47]}},
+  {'type': 'Feature',
+   'properties': {'id': '9222d93beb87495c95adefb441ebab01', 'mag': 0.7},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3371738, 12.6486807, 105.84]}},
+  {'type': 'Feature',
+   'properties': {'id': 'da6b1315f1e34db2946bdb54170a702b', 'mag': 4.94},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6687093, 13.1331868, 65.86]}},
+  {'type': 'Feature',
+   'properties': {'id': '2b9ed821e8634c53bd7e2d90e344a561', 'mag': 5.08},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 371.54]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e8c469dcb4dc4482ab63dbd8aa5dcb3f', 'mag': 3.23},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.8215974, 13.1819797, 243.58]}},
+  {'type': 'Feature',
+   'properties': {'id': '44ecc1f34fbf45d8a453b88e80d7089b', 'mag': 0.47},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7200164, 13.0721257, 45.84]}},
+  {'type': 'Feature',
+   'properties': {'id': '0ffd90e31b5a4b338faade99b09fa8ee', 'mag': 6.01},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5066675, 13.2172845, 264.95]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd70fac377d134288929931110229cdc8', 'mag': 0.24},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7493845, 13.2126844, 283.55]}},
+  {'type': 'Feature',
+   'properties': {'id': '415e713527e448e393292ab8e709b487', 'mag': 5.87},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7683853, 12.9804938, 406.8]}},
+  {'type': 'Feature',
+   'properties': {'id': '0c7d164b3c0a4e51bcf8d08094a70390', 'mag': 8.26},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6345704, 13.1715801, 87.24]}},
+  {'type': 'Feature',
+   'properties': {'id': '30161db0ae1c4b77978d8fd06fcd3ed0', 'mag': 4.9},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9027211, 13.1315987, 141.52]}},
+  {'type': 'Feature',
+   'properties': {'id': '5ecf68a395fc4027b4911363b87109d2', 'mag': 6.57},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 65.71]}},
+  {'type': 'Feature',
+   'properties': {'id': '25a9527143e14e57bea2ea78cf716a4d', 'mag': 0.92},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 141.31]}},
+  {'type': 'Feature',
+   'properties': {'id': '67d3179b847443bc9cf5607dac7058e2', 'mag': 3.91},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4364795, 13.0758896, 149.26]}},
+  {'type': 'Feature',
+   'properties': {'id': '0ed83fc52a484b838389b5d151ac6e91', 'mag': 2.03},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5289978, 13.1679457, 348.4]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f05c09d576664f33a172fe5280dd543d', 'mag': 4.12},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6520502, 13.1767348, 28.36]}},
+  {'type': 'Feature',
+   'properties': {'id': '467d64fe988f4fe185eb37928408bbbe', 'mag': 9.26},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9556435, 13.0894237, 187.38]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c53117b679504096b08641a221adc51e', 'mag': 7.61},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3095674, 12.9468593, 178.15]}},
+  {'type': 'Feature',
+   'properties': {'id': '90b4e748cf9242fbbfe9f0452da2ab6e', 'mag': 6.41},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7335794, 12.9820217, 4.04]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a174ac85ba734a6a9a8155fff08a64f0', 'mag': 9.68},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5716719, 12.9606132, 98.62]}},
+  {'type': 'Feature',
+   'properties': {'id': '17dc7649ea2242968bb39a05576078a8', 'mag': 4.31},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 813.3]}},
+  {'type': 'Feature',
+   'properties': {'id': '541da9a8186748108e579d7daa845b0f', 'mag': 4.41},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7172842, 13.1548531, 100.01]}},
+  {'type': 'Feature',
+   'properties': {'id': '112242c25abb41a8a99fac5cff6e8224', 'mag': 4.23},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5402044, 12.9437456, 279.5]}},
+  {'type': 'Feature',
+   'properties': {'id': '5211c626d7ab41f28489a3be84898ccd', 'mag': 8.37},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3371738, 12.6486807, 376.25]}},
+  {'type': 'Feature',
+   'properties': {'id': 'f17c4ad22c734f6ea4b0428e9ff07d3e', 'mag': 7.2},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6687093, 13.1331868, 442.17]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fb768166ca044b81b2699192b195fec6', 'mag': 7.5},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 60.62]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ee1c742f01f84f3189113fe4bb3f5ff7', 'mag': 7.98},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.8215974, 13.1819797, 307.81]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fe012170fe05428b9c90e57f54ab561e', 'mag': 3.23},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7200164, 13.0721257, 302.33]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a4e13b881d2944f8bb3e6644ae3dfec6', 'mag': 8.17},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5066675, 13.2172845, 152.56]}},
+  {'type': 'Feature',
+   'properties': {'id': '09010d15734b4ff381443c97d2890b28', 'mag': 9.61},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7493845, 13.2126844, 125.83]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c4619f168db0411697fbd9a49b989393', 'mag': 4.6},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7683853, 12.9804938, 819.06]}},
+  {'type': 'Feature',
+   'properties': {'id': '819fa553dacd480391093f4572b4009d', 'mag': 2.66},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6345704, 13.1715801, 40.92]}},
+  {'type': 'Feature',
+   'properties': {'id': '026afbf82f744d4daf3852c28dfb33ae', 'mag': 0.4},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9027211, 13.1315987, 151.57]}},
+  {'type': 'Feature',
+   'properties': {'id': '1b1ebca125164760bfb150c375729fe6', 'mag': 6.67},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 568.6]}},
+  {'type': 'Feature',
+   'properties': {'id': '9691ef308c624cc5a15aba7497809ce2', 'mag': 1.45},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6873408, 13.1132252, 231.56]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e9f2f3929ba347a88242f02d90837e82', 'mag': 1.49},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4364795, 13.0758896, 311.28]}},
+  {'type': 'Feature',
+   'properties': {'id': 'de0a81dece7e47a18de13d6740bcfa52', 'mag': 8.76},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5289978, 13.1679457, 797.69]}},
+  {'type': 'Feature',
+   'properties': {'id': '60bd65f57c0c449980bb42456a38ff75', 'mag': 9.27},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6520502, 13.1767348, 14.8]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd19cbe93f5cf436491e55c77cb083d45', 'mag': 4.15},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.9556435, 13.0894237, 14.54]}},
+  {'type': 'Feature',
+   'properties': {'id': '62718393965d4c309259c6b4bc17ce23', 'mag': 9.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6041603, 12.9626925, 27.69]}},
+  {'type': 'Feature',
+   'properties': {'id': '0ed797db33ac43beb6bee94c68360710', 'mag': 2.13},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6152935, 12.9612736, 140.67]}},
+  {'type': 'Feature',
+   'properties': {'id': '2fec48a5d91a4fc0b5d3d518fb673d89', 'mag': 7.99},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6273767, 12.9802093, 73.28]}},
+  {'type': 'Feature',
+   'properties': {'id': '89d8bef395674923ac58d63ffa18d5d4', 'mag': 5.44},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6130165, 12.996845, 309.99]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ef1c43cca70340a88ab8fb8bd730c6fd', 'mag': 0.11},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6208684, 12.9954832, 14.6]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a781bf086107456cac5729d2d7b9b9f9', 'mag': 0.11},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6381958, 12.9624669, 62.69]}},
+  {'type': 'Feature',
+   'properties': {'id': '5177e4ecd7c44f6bbe7db1db4f417dc4', 'mag': 8.3},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6404672, 12.9732913, 219.61]}},
+  {'type': 'Feature',
+   'properties': {'id': '75f604621d1b4ae7bac09d39745d6936', 'mag': 8.12},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5703253, 13.0027353, 51.2]}},
+  {'type': 'Feature',
+   'properties': {'id': '817fb2049c04449db01634fbdfacd3fc', 'mag': 4.91},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.578642, 12.9680027, 75.19]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bac097cd0a5c4d269f151bb365d5a684', 'mag': 9.25},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5774884, 12.9599061, 312.69]}},
+  {'type': 'Feature',
+   'properties': {'id': 'af7aab9e94034017a82814bfd768eec8', 'mag': 1.37},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5789181, 12.9684724, 557.97]}},
+  {'type': 'Feature',
+   'properties': {'id': '23419603793941cfb6e8dc3ac63cac62', 'mag': 8.5},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5795893, 13.0077079, 40.82]}},
+  {'type': 'Feature',
+   'properties': {'id': '9498f011765c4ee3bc7df39d1d6f924b', 'mag': 7.01},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5753419, 12.9931876, 165.04]}},
+  {'type': 'Feature',
+   'properties': {'id': '0cc8f5dd080d41de96cd0d0cde5bd9e2', 'mag': 7.94},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6075416, 12.986391, 921.62]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fae2813fdc7b4036bc4a28205d5f0d25', 'mag': 4.04},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6058685051562, 12.98506045, 104.12]}},
+  {'type': 'Feature',
+   'properties': {'id': '8279a91a3e3d4ee4b83860e00f34ae23', 'mag': 7.86},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6246697, 12.9778793, 324.05]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b844b96cda664b2fb64d5f469ebc369c', 'mag': 8.08},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.58516877601824, 12.988721250000001, 289.62]}},
+  {'type': 'Feature',
+   'properties': {'id': '43cd6f45ea88448e9915dcc1bbca72e8', 'mag': 0.88},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5948766, 12.9871119, 227.47]}},
+  {'type': 'Feature',
+   'properties': {'id': '56f8e0be916344fba9a8d6e42bad74f2', 'mag': 9.01},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5912997, 12.9791198, 463.2]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e5c3b684f372482596e6d61a3637edba', 'mag': 4.07},
+   'geometry': {'type': 'Point',
+    'coordinates': [80.1651978, 17.2510682, 399.57]}},
+  {'type': 'Feature',
+   'properties': {'id': '510456a294864941aef84b9fb682c5a7', 'mag': 3.66},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7614229, 12.9963995, 35.3]}},
+  {'type': 'Feature',
+   'properties': {'id': '9c312a0dcc004a15bdf13f118e35ad0d', 'mag': 9.51},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7162015, 12.9919033, 152.5]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fbb160ad6f0a4ebe8b3bc24f77717a8d', 'mag': 3.94},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.695935, 13.007516, 55.75]}},
+  {'type': 'Feature',
+   'properties': {'id': '128e75622be245039798ed08bdd5bdf2', 'mag': 3.88},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.692813, 12.99678075, 605.2]}},
+  {'type': 'Feature',
+   'properties': {'id': '4f7360780d3446a08e4df968865f1cf8', 'mag': 5.61},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7205146, 13.0263229, 48.74]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ed86c6adeb774cc0a0b454b30d45c0b2', 'mag': 4.73},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6984163, 12.9552572, 182.64]}},
+  {'type': 'Feature',
+   'properties': {'id': '2e296be829ce494b87ed37b0ea5b0658', 'mag': 6.82},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7469937, 12.9406152, 167.31]}},
+  {'type': 'Feature',
+   'properties': {'id': 'cf33084328994479939a2f89dc9c9852', 'mag': 8.1},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6518539, 13.0141618, 143.88]}},
+  {'type': 'Feature',
+   'properties': {'id': '4298447a96074b6589003fd984ea9023', 'mag': 5.51},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6323597, 13.0358698, 675.32]}},
+  {'type': 'Feature',
+   'properties': {'id': 'bb803c9861834748aa071ef4100cdc8c', 'mag': 9.63},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6601508, 13.0273312, 214.04]}},
+  {'type': 'Feature',
+   'properties': {'id': '254726245a604673a625cb2fa09c9583', 'mag': 5.13},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6403368, 13.0221416, 335.84]}},
+  {'type': 'Feature',
+   'properties': {'id': '3d9d84c9cb0546a2b2a792ca70001f71', 'mag': 1.27},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6278288, 13.0117678, 38.81]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fb4b4789fbde45d581e75f2fcf62f9d6', 'mag': 2.66},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6777817, 13.0120218, 17.52]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd9c7b836ba4145debe0226927265c71f', 'mag': 4.39},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5919, 13.0382184, 106.87]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c1214d828a2044128f94ee06ef39a338', 'mag': 7.05},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5483803, 13.0464531, 782.52]}},
+  {'type': 'Feature',
+   'properties': {'id': '6641663d9cd442f0b15a07d72ffd0403', 'mag': 6.11},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.557374, 13.0328884, 210.33]}},
+  {'type': 'Feature',
+   'properties': {'id': '60f350ff898f4d248a442be7b6209228', 'mag': 2.29},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5273253, 13.0329419, 59.25]}},
+  {'type': 'Feature',
+   'properties': {'id': '88d7ac82d73547bebfb255cc369a2d63', 'mag': 3.22},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.595715, 13.0227204, 384.47]}},
+  {'type': 'Feature',
+   'properties': {'id': '9db4a0dacf2e438c9e5ab456381bb15d', 'mag': 1.48},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5577315, 13.0766407, 6.8]}},
+  {'type': 'Feature',
+   'properties': {'id': '01df879727e44a13afbec7fb3753a980', 'mag': 4.87},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5963454, 13.1006982, 242.24]}},
+  {'type': 'Feature',
+   'properties': {'id': '12d79a5fc39c4d8d8b2769aedebda08c', 'mag': 5.83},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.54768594156756, 13.021834550000001, 78.9]}},
+  {'type': 'Feature',
+   'properties': {'id': '6129516fab994c01a25494bb94fbb029', 'mag': 1.07},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6239038, 12.9089453, 234.19]}},
+  {'type': 'Feature',
+   'properties': {'id': '18be1e4c09de48828a1175d34e4529a3', 'mag': 2.45},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6916113, 12.8162443, 245.18]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fab1e4084fe045adb054ab8a5e2edd40', 'mag': 4.45},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6102821, 12.9151772, 403.79]}},
+  {'type': 'Feature',
+   'properties': {'id': '2928ec4090b644e1be4c59a8fd50aa6d', 'mag': 9.37},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5912997, 12.9791198, 282.83]}},
+  {'type': 'Feature',
+   'properties': {'id': '9e46c3c169924f16ab24c26557fc47fb', 'mag': 8.04},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6388622, 12.9116225, 29.05]}},
+  {'type': 'Feature',
+   'properties': {'id': 'fba19c49d39543589d255d19bd1252bf', 'mag': 1.46},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5824229, 12.9292731, 776.02]}},
+  {'type': 'Feature',
+   'properties': {'id': '31a81cb1b29a4c5788c5303bdfbca5b4', 'mag': 6.38},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5912997, 12.9791198, 187.83]}},
+  {'type': 'Feature',
+   'properties': {'id': '17947ed3b95c4ab79a025af7cd4de586', 'mag': 2.59},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6179508, 12.9212269, 181.55]}},
+  {'type': 'Feature',
+   'properties': {'id': 'd39075ae04164998bec45811833374c1', 'mag': 8.33},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6222304, 12.9340114, 498.67]}},
+  {'type': 'Feature',
+   'properties': {'id': '7a84208ef04d42c2a3325d42461e8f6d', 'mag': 6.47},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5576723, 13.1726164, 556.74]}},
+  {'type': 'Feature',
+   'properties': {'id': 'da0845e524024d01ae1774f4ef31923e', 'mag': 5.48},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5755021, 12.9417261, 561.35]}},
+  {'type': 'Feature',
+   'properties': {'id': '2754cda221b44e4ba05e36f0c960e027', 'mag': 9.11},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5444995, 12.9401439, 259.37]}},
+  {'type': 'Feature',
+   'properties': {'id': '661b353995f54955ac68afd55626d824', 'mag': 9.44},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5553179, 12.9081487, 124.01]}},
+  {'type': 'Feature',
+   'properties': {'id': 'e717073a4806459981ff519d438108ea', 'mag': 3.89},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.55767110316643, 12.91814255, 435.2]}},
+  {'type': 'Feature',
+   'properties': {'id': '7df0557aec344c0cb72536d29964e93c', 'mag': 4.91},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5455438, 12.9055682, 224.75]}},
+  {'type': 'Feature',
+   'properties': {'id': '191d14d1ef1f483eaa941e6d249ebbc3', 'mag': 9.31},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5580713, 12.8580811, 65.26]}},
+  {'type': 'Feature',
+   'properties': {'id': '6b81b247d73a4d6280695dd787b64c03', 'mag': 6.36},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.60417911152601, 12.87847015, 206.99]}},
+  {'type': 'Feature',
+   'properties': {'id': '01e86e44c9604fcf91c521490a8bb0be', 'mag': 9.48},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.61301120503904, 12.8633887, 165.93]}},
+  {'type': 'Feature',
+   'properties': {'id': '7f87349f4fc54b18a618c776a2562ca3', 'mag': 7.73},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5877237, 12.8565317, 54.44]}},
+  {'type': 'Feature',
+   'properties': {'id': '5ac06dc4c9b744c1b6598b803a0375a1', 'mag': 0.25},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6028031, 12.8773486, 85.36]}},
+  {'type': 'Feature',
+   'properties': {'id': '6d10524036004de2a39137ef1d93c366', 'mag': 0.32},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5837252, 12.8742546, 82.67]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ec6ee73a63f9418cb1f40352dff54303', 'mag': 8.31},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5391325, 12.9937572, 526.98]}},
+  {'type': 'Feature',
+   'properties': {'id': 'ff61090bd21f4e12980af70765632ca6', 'mag': 0.46},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5226376, 12.9823617, 103.72]}},
+  {'type': 'Feature',
+   'properties': {'id': '3544ac2ac5ee45ed8127d186fc99713f', 'mag': 9.36},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4837568, 12.9176571, 106.62]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c4f1292a503a45029680d75253e4c290', 'mag': 7.84},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5446972, 13.0113153, 244.98]}},
+  {'type': 'Feature',
+   'properties': {'id': '5eb50fc19f40464580ff5c47f817c7e1', 'mag': 6.37},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5121724, 12.9546741, 292.59]}},
+  {'type': 'Feature',
+   'properties': {'id': '401a728467a2439d8e1ecaac33699657', 'mag': 0.47},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5378032, 13.0104064, 259.82]}},
+  {'type': 'Feature',
+   'properties': {'id': 'c761f3a4cba5425da8630b13ff47775b', 'mag': 8.62},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5212118, 12.9413253, 9.59]}},
+  {'type': 'Feature',
+   'properties': {'id': '10b66b6818724371b9c93a7008685554', 'mag': 2.93},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.554883, 12.9882338, 645.28]}},
+  {'type': 'Feature',
+   'properties': {'id': '80772faafd02403897774f6fc19b0f08', 'mag': 7.76},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5155224, 12.9274413, 60.15]}},
+  {'type': 'Feature',
+   'properties': {'id': '6956490e10194977a0dbcf7f514c44b3', 'mag': 9.51},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.54578883887129, 12.9718886, 140.13]}},
+  {'type': 'Feature',
+   'properties': {'id': '42111b5d20914cc9b43183b244ece37b', 'mag': 9.49},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7861352, 12.8600866, 732.84]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b6d30dc01e034fd6923819f0b7cd2a7b', 'mag': 3.94},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.3963586, 13.0953024, 37.03]}},
+  {'type': 'Feature',
+   'properties': {'id': 'b9b17991ff7d4c00999c98c3f4bc8b2a', 'mag': 7.19},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6380931, 12.7852528, 155.06]}},
+  {'type': 'Feature',
+   'properties': {'id': 'a6196492f86a4dfda3810eaf3cfb1ba6', 'mag': 5.79},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.4783628, 13.1393984, 58.97]}},
+  {'type': 'Feature',
+   'properties': {'id': '9e0e7639997242a89ec0c504ea9e2c34', 'mag': 9.99},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.5079901351852, 13.0828877, 554.4]}},
+  {'type': 'Feature',
+   'properties': {'id': '960a2a037fce4c238af9838420da9703', 'mag': 8.71},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.6105247, 12.9221906, 834.82]}},
+  {'type': 'Feature',
+   'properties': {'id': '683347b33e7f4065b0361bc36e59643f', 'mag': 8.05},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7062826, 12.8004439, 251.61]}},
+  {'type': 'Feature',
+   'properties': {'id': '170523db563a4e319248868ab9584e02', 'mag': 5.22},
+   'geometry': {'type': 'Point',
+    'coordinates': [77.7712834, 12.7782588, 63.27]}}]},
+});
+ 
+afterMap.addLayer(
+{
+'id': 'earthquakes-heat',
+'type': 'heatmap',
+'source': 'earthquakes',
+'maxzoom': 16,
+'paint': {
+// Increase the heatmap weight based on frequency and property magnitude
+'heatmap-weight': [
+'interpolate',
+['linear'],
+['get', 'mag'],
+0,
+0,
+6,
+1
+],
+// Increase the heatmap color weight weight by zoom level
+// heatmap-intensity is a multiplier on top of heatmap-weight
+'heatmap-intensity': [
+'interpolate',
+['linear'],
+['zoom'],
+0,
+1,
+9,
+3
+],
+// Color ramp for heatmap.  Domain is 0 (low) to 1 (high).
+// Begin color ramp at 0-stop with a 0-transparancy color
+// to create a blur-like effect.
+'heatmap-color': [
+'interpolate',
+['linear'],
+['heatmap-density'],
+0,
+'rgba(33,102,172,0)',
+0.2,
+'rgb(103,169,207)',
+0.4,
+'rgb(209,229,240)',
+0.6,
+'rgb(253,219,199)',
+0.8,
+'rgb(239,138,98)',
+1,
+'rgb(178,24,43)'
+],
+// Adjust the heatmap radius by zoom level
+'heatmap-radius': [
+'interpolate',
+['linear'],
+['zoom'],
+0,
+2,
+9,
+20
+],
+// Transition from heatmap to circle layer by zoom level
+'heatmap-opacity': [
+'interpolate',
+['linear'],
+['zoom'],
+7,
+1,
+9,
+0
+]
+}
+},
+'waterway-label'
+);
+ 
+afterMap.addLayer(
+{
+'id': 'earthquakes-point',
+'type': 'circle',
+'source': 'earthquakes',
+'minzoom': 7,
+'paint': {
+// Size circle radius by earthquake magnitude and zoom level
+'circle-radius': [
+'interpolate',
+['linear'],
+['zoom'],
+7,
+['interpolate', ['linear'], ['get', 'mag'], 1, 1, 6, 4],
+16,
+['interpolate', ['linear'], ['get', 'mag'], 1, 5, 6, 50]
+],
+// Color circle by earthquake magnitude
+'circle-color': [
+'interpolate',
+['linear'],
+['get', 'mag'],
+1,
+'rgba(33,102,172,0)',
+2,
+'rgb(103,169,207)',
+3,
+'rgb(209,229,240)',
+4,
+'rgb(253,219,199)',
+5,
+'rgb(239,138,98)',
+6,
+'rgb(178,24,43)'
+],
+'circle-stroke-color': 'white',
+'circle-stroke-width': 1,
+// Transition from heatmap to circle layer by zoom level
+'circle-opacity': [
+'interpolate',
+['linear'],
+['zoom'],
+7,
+0,
+8,
+1
+]
+}
+},
+'waterway-label'
+);
+});
+
+///------------------------------------------------------
+// __________---------------------------------nearbypolice-------------------
+
+//-----------------------------------------------------------------------------------------------------------------------
+{% for feed in covidpublic %}
+ var popup = new mapboxgl.Popup({ offset: 25 }).setText(
+        '{{feed.Address|safe}}'
+    );
+
+    // create DOM element for the marker
+    var el = document.createElement('div');
+    el.id = 'marker2';
+
+    // create the marker
+    new mapboxgl.Marker(el)
+        .setLngLat([{{feed.longitude|safe}},{{feed.latitude|safe}}])
+        .setPopup(popup) // sets a popup on this marker
+        .addTo(afterMap);
+
+
+{% endfor %}
+beforeMap.addControl(
+new MapboxDirections({
+accessToken: mapboxgl.accessToken
+}),
+'top-left'
+);
+afterMap.addControl(
+  new mapboxgl.GeolocateControl({
+  positionOptions: {
+  enableHighAccuracy: true
+  },
+  trackUserLocation: true
+  })
+);
+afterMap.addControl(
+  new MapboxGeocoder({
+  accessToken: mapboxgl.accessToken,
+  mapboxgl: mapboxgl
+  })
+);
+</script>
+ 
+ 
+
+
+
+{% endblock content %}
+

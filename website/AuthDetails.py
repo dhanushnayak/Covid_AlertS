@@ -44,7 +44,7 @@ class groupdetails():
 class Location():
     def __init__(self,groupid,email):
         if (not len(firebase_admin._apps)):
-            cred = credentials.Certificate(r'C://Users/NayakD/Desktop/cir/my-firebase-app-ad067-firebase-adminsdk-1lclz-d3de05a319.json')
+            cred = credentials.Certificate(r'my-firebase-app-ad067-firebase-adminsdk-1lclz-d3de05a319.json')
             firebase_admin.initialize_app(cred)
 
         self.db = firestore.client()
@@ -62,7 +62,8 @@ class Location():
         docs = self.db.collection(u'police').document(self.gid).collection(self.email).stream()
 
         for doc in docs:
-          if(doc.id ==(self.date.strftime("%d")+'-'+self.date.strftime("%m")+"-"+self.date.strftime("%Y")) ):
+          #if(doc.id ==(self.date.strftime("%d")+'-'+self.date.strftime("%m")+"-"+self.date.strftime("%Y")) ):
+          if(doc.id =="31-07-2020" ):
             return list(doc.to_dict().values())
 
         

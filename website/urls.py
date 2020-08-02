@@ -25,8 +25,10 @@ urlpatterns = [
    path("", views.Login, name ='login'), 
   
    path("register",views.register,name='register'),
-  
-   url(r'names/(?P<Email>[a-zA-Z0-9@.$]+)$', views.names),
-   url(r'(?P<Email>[a-zA-Z0-9@.$]+)/(?P<groupid>[a-zA-Z0-9@.$]+)/(?P<submail>[a-zA-Z0-9@.$]+)$',views.location)
-    
+   url(r'location/(?P<Email>[a-zA-Z0-9@.$]+)/(?P<groupid>[a-zA-Z0-9@.$]+)/(?P<submail>[a-zA-Z0-9@.$]+)$',views.location),
+   url(r'user/(?P<Email>[a-zA-Z0-9@.$]+)/(?P<GroupId>[a-zA-Z0-9@.$]+)$',views.temp),
+   url(r'place/(?P<Email>[a-zA-Z0-9@.$]+)/(?P<location>[a-zA-Z]+)$',views.chart),
+   url(r'corona/(?P<Email>[a-zA-Z0-9@.$]+)/',views.Coronaform),
+   url(r'crimecase/(?P<Email>[a-zA-Z0-9@.$]+)/',views.reportcase),
+   url(r'report/(?P<Email>[a-zA-Z0-9@.$]+)/',views.table),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

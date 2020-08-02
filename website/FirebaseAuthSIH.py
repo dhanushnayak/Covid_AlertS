@@ -5,13 +5,13 @@ import os
 from skimage import io
 import face_recognition
 import cv2 
+import os
 class Firebase():
     def __init__(self,groupid,Email,password):
-        
-       
-
+        path=os.path.dirname(os.path.realpath(__file__))
         if (not len(firebase_admin._apps)):
-            cred = credentials.Certificate(r'C://Users/NayakD/Desktop/cir/my-firebase-app-ad067-firebase-adminsdk-1lclz-d3de05a319.json')
+            cred = credentials.Certificate(str(path)+"\my-firebase-app-ad067-firebase-adminsdk-1lclz-d3de05a319.json")
+            
             firebase_admin.initialize_app(cred)
 
         self.db = firestore.client()
