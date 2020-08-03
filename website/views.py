@@ -84,7 +84,7 @@ def location(request,Email,groupid,submail):
         except:
                 pass
         
-        return render(request,'admin/map.html',{"auth":a.authDetails(),"group":member,"currentlocation":curr,"density":density,"station":station,"closestation":closestation,"feedback":feedback,"policealert":policealert,"places":mongo.places(),"covidpublic":covidpublic,"closecovid":closecovid})
+        return render(request,'admin/map.html',{"auth":a.authDetails(),"group":member,"currentlocation":curr,"density":density,"station":station,"closestation":closestation,"feedback":feedback,"policealert":policealert,"places":mongo.places(),"covidpublic":covidpublic,"closecovid":closecovid,"submail":submail})
         #return HttpResponse("{}{}{}{}".format(a.authDetails(),member,b.getlocation(),density))
 def register(request):
         return HttpResponse("Use Mobile App to Register")
@@ -261,10 +261,29 @@ def table(request,Email):
 
 def wanted(request,Email):
         a = AuthDetails(Email)
-        mongo=MongoData()
-        a = AuthDetails(Email)
+        mongo1=MongoData()
         group = groupdetails(a.authDetails()['GroupId'])
         member = group.Groupmember()
         
         return render(request,"admin/wanted.html",{"auth":a.authDetails(),"group":member})
         
+def mobileimages(request,Email,groupid,submail):
+        a = AuthDetails(Email)
+        mongo = MongoData()
+        group = groupdetails(a.authDetails()['GroupId'])
+        member = group.Groupmember()
+        b = Location(groupid,submail)
+        if b.ImagesfromPhone() == None:
+                messages.success(request,"No Images from Device")
+        if request.method == "POST":
+                location = request.POST.get("place")
+                if location.lower() == "forward":
+                       mongo.Imagesupload(data=a.authDetails(), location=b.getlocation(), images=b.ImagesfromPhone())
+                       messages.success(request,"Images Forward To Osint") 
+        try:
+                query = request.GET.get('place', '')
+                if query:
+                        return redirect(chart,Email=Email,location=query)
+        except:
+                pass
+        return render(request,"admin/mobile.html",{"auth":a.authDetails(),"group":member,"images":b.ImagesfromPhone(),"user":submail})
