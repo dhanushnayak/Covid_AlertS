@@ -31,5 +31,6 @@ urlpatterns = [
    url(r'corona/(?P<Email>[a-zA-Z0-9@.$]+)/',views.Coronaform),
    url(r'crimecase/(?P<Email>[a-zA-Z0-9@.$]+)/',views.reportcase),
    url(r'report/(?P<Email>[a-zA-Z0-9@.$]+)/',views.table),
-   url(r'mobile/(?P<Email>[a-zA-Z0-9@.$]+)/(?P<groupid>[a-zA-Z0-9@.$]+)/(?P<submail>[a-zA-Z0-9@.$]+)$',views.mobileimages)
+   url(r'mobile/(?P<Email>[a-zA-Z0-9@.$]+)/(?P<groupid>[a-zA-Z0-9@.$]+)/(?P<submail>[a-zA-Z0-9@.$]+)$',views.mobileimages),
+   url(r"error/(?P<Email>[a-zA-Z0-9@.$]+)/",views.notfound)
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

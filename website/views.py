@@ -49,173 +49,199 @@ def Login(request):
 
 
 def location(request,Email,groupid,submail):
-        a = AuthDetails(Email)
-        group = groupdetails(a.authDetails()['GroupId'])
-        member = group.Groupmember()
-        b = Location(groupid,submail)
-        mongo = MongoData()
-        density = Df_to_geojson.df_to_geojson(df=mongo.Density(),properties=['place',"population_density"])
-        sdf = mongo.station()
-        station = Df_to_geojson.df_to_geojson(df=sdf,properties=["description","icon"])
-        sdf = sdf[['latitude','longitude']].T.to_dict().values()
-        curr=b.getlocation()
         try:
-                closestation=Closestpolice.closestpolice(df1=sdf,df2=curr)
+                a = AuthDetails(Email)
+                group = groupdetails(a.authDetails()['GroupId'])
+                member = group.Groupmember()
+                b = Location(groupid,submail)
+                mongo = MongoData()
+                density = Df_to_geojson.df_to_geojson(df=mongo.Density(),properties=['place',"population_density"])
+                sdf = mongo.station()
+                station = Df_to_geojson.df_to_geojson(df=sdf,properties=["description","icon"])
+                sdf = sdf[['latitude','longitude']].T.to_dict().values()
+                curr=b.getlocation()
+                try:
+                        closestation=Closestpolice.closestpolice(df1=sdf,df2=curr)
+                except:
+                        closestation=0
+                feedback = mongo.getfeedback()
+                if not feedback:
+                        feedback = None
+                covidpublic=mongo.getcovidpubilc()
+                if not covidpublic:
+                        covidpublic = None
+                try:
+                        closecovid=Closestpolice.closestpolice(df1=covidpublic[['latitude','longitude']].T.to_dict().values(),df2=curr)
+                except:
+                        closecovid=0
+                
+                policealert = mongo.GetPoliceAlert()
+                if not policealert:
+                        policealert = None
+                try:
+                        query = request.GET.get('place', '')
+                        if query:
+                                try:
+                                        return redirect(chart,Email=Email,location=query)
+                                except:
+                                        return("/error/{Email}")
+                except:
+                        return("/error/{Email}")
         except:
-                closestation=0
-        feedback = mongo.getfeedback()
-        if not feedback:
-                feedback = None
-        covidpublic=mongo.getcovidpubilc()
-        if not covidpublic:
-                covidpublic = None
-        try:
-                closecovid=Closestpolice.closestpolice(df1=covidpublic[['latitude','longitude']].T.to_dict().values(),df2=curr)
-        except:
-                closecovid=0
-        
-        policealert = mongo.GetPoliceAlert()
-        if not policealert:
-                policealert = None
-        try:
-                query = request.GET.get('place', '')
-                if query:
-                        return redirect(chart,Email=Email,location=query)
-        except:
-                pass
-        
+                return("/error/{Email}")        
         return render(request,'admin/map.html',{"auth":a.authDetails(),"group":member,"currentlocation":curr,"density":density,"station":station,"closestation":closestation,"feedback":feedback,"policealert":policealert,"places":mongo.places(),"covidpublic":covidpublic,"closecovid":closecovid,"submail":submail})
         #return HttpResponse("{}{}{}{}".format(a.authDetails(),member,b.getlocation(),density))
 def register(request):
         return HttpResponse("Use Mobile App to Register")
        
 def temp(request,Email,GroupId):
-        mongo = MongoData()
-        a = AuthDetails(Email)
-        group = groupdetails(a.authDetails()['GroupId'])
-        member = group.Groupmember()
-        df2={}
-        df2['chart']={
-                "caption": "Corona Cased Reported In  Bangalore",
-                "subcaption":"Last 10 Days",
-                "showValues": "1",
-                "showpercentvalues": "0",
-            "defaultcenterlabel": "Reported",
-            "yaxisname": "Cases",
-            "xaxisname":"Dates",
-            "anchorradius": "5",
-            "aligncaptionwithcanvas": "0",
-            "captionpadding": "0",
-            "decimals": "1",
-            "theme" : "fusion",
-                }
-        df2['data']=[]
-        datedf = mongo.getcovidcases()
-        for key,value in datedf.items():
-            d22={}
-            d22['label']=key
-            d22['value']=str(value)
-            d22['color']="#FF5A87"
-            df2['data'].append(d22)
-        dTotal = FusionCharts("spline", "ex2" , "800", "390", "chart-2", "json",df2) 
-        chartObj = FusionCharts( 'doughnut2d', 'ex1', '500', '390', 'chart-1', 'json', """{
-                "chart": {
-                "caption": "Corona Blast in Bangalore",
-                "subcaption": "Overall Count",
-                "showvalues": "1",
-                "showpercentintooltip": "0",
-                "numberprefix": "",
-                "enablemultislicing": "1",
-                "theme": "fusion"
-                },
-                "data": [
-                {
-                "label": "Active Cases",
-                "value": "53324"
-                },
-                {
-                "label": "Recoverd",
-                "value": "32045"
-                },
-                {
-                "label": "Deaths",
-                "value": "1103"
-                },
-                
-                ]
-                }""")
-     
-        query = request.GET.get('place', '')
-        if query:
-                return redirect(chart,Email=Email,location=query)
-     
-    
+        try:
+                mongo = MongoData()
+                a = AuthDetails(Email)
+                group = groupdetails(a.authDetails()['GroupId'])
+                member = group.Groupmember()
+                df2={}
+                df2['chart']={
+                        "caption": "Corona Cased Reported In  Bangalore",
+                        "subcaption":"Last 10 Days",
+                        "showValues": "1",
+                        "showpercentvalues": "0",
+                "defaultcenterlabel": "Reported",
+                "yaxisname": "Cases",
+                "xaxisname":"Dates",
+                "anchorradius": "5",
+                "aligncaptionwithcanvas": "0",
+                "captionpadding": "0",
+                "decimals": "1",
+                "theme" : "fusion",
+                        }
+                df2['data']=[]
+                datedf = mongo.getcovidcases()
+                for key,value in datedf.items():
+                        d22={}
+                        d22['label']=key
+                        d22['value']=str(value)
+                        d22['color']="#FF5A87"
+                        df2['data'].append(d22)
+                dTotal = FusionCharts("spline", "ex2" , "800", "390", "chart-2", "json",df2) 
+                chartObj = FusionCharts( 'doughnut2d', 'ex1', '500', '390', 'chart-1', 'json', """{
+                        "chart": {
+                        "caption": "Corona Blast in Bangalore",
+                        "subcaption": "Overall Count",
+                        "showvalues": "1",
+                        "showpercentintooltip": "0",
+                        "numberprefix": "",
+                        "enablemultislicing": "1",
+                        "theme": "fusion"
+                        },
+                        "data": [
+                        {
+                        "label": "Active Cases",
+                        "value": "53324"
+                        },
+                        {
+                        "label": "Recoverd",
+                        "value": "32045"
+                        },
+                        {
+                        "label": "Deaths",
+                        "value": "1103"
+                        },
+                        
+                        ]
+                        }""")
+        
+                query = request.GET.get('place', '')
+                try:
+                        if query:
+                                try:
+                                        return redirect(chart,Email=Email,location=query)
+                                except:
+                                        return("/error/{Email}")
+                except:
+                        return("/error/{Email}")
+        
+        except:
+                return("/error/{Email}")
         
         return render(request,"admin/home.html",{'output2':dTotal.render(),'output': chartObj.render(),"group":member,"auth":a.authDetails(),"places":mongo.places()})
 
 
 def chart(request,Email,location):
-        graph = GraphDetails(location)
-        mongo = MongoData()
-        a = AuthDetails(Email)
-        group = groupdetails(a.authDetails()['GroupId'])
-        member = group.Groupmember()
-        rating=round(graph.placerating_linegraph()[0],1)
-        rate = rating*10
-        line = graph.placerating_linegraph()[1]
-        df2={}
-        df2['chart']={
-                "caption": "Corona Cased Reported ",
-                "subcaption":"Last 10 Days",
-                "showValues": "1",
-                "showpercentvalues": "0",
-            "defaultcenterlabel": "Reported",
-            "yaxisname": "Cases",
-            "xaxisname":"Dates",
-            "anchorradius": "5",
-            "aligncaptionwithcanvas": "0",
-            "captionpadding": "0",
-            "decimals": "1",
-            "theme" : "fusion",
-                }
-        df2['data']=[]
-        datedf = line
-        for key,value in datedf.items():
-            d22={}
-            d22['label']=key
-            d22['value']=str(value)
-            d22['color']="#FF5A87"
-            df2['data'].append(d22)
-        dTotal = FusionCharts("spline", "ex2" , "800", "390", "chart-2", "json",df2)
-        dataSource = {}
-        dataSource['chart'] = {
-                "caption": "Covid-19 of Zone ",
-                "subcaption":"Overview",
-                "showValues": "1",
-                "theme": "fusion"
-                }
-        dataSource['data'] = []
-        for i,j in graph.places_piechart().items():
-                    data={}
-                    data['label']=str(i)
-                    data['value']=str(j)
-                    dataSource['data'].append(data)
+        try:
+                if location!= None:
+                        graph = GraphDetails(location)
+                        mongo = MongoData()
+                        a = AuthDetails(Email)
+                        group = groupdetails(a.authDetails()['GroupId'])
+                        member = group.Groupmember()
+                        rating=round(graph.placerating_linegraph()[0],1)
+                        rate = rating*10
+                        line = graph.placerating_linegraph()[1]
+                        df2={}
+                        df2['chart']={
+                                "caption": "Corona Cased Reported ",
+                                "subcaption":"Last 10 Days",
+                                "showValues": "1",
+                                "showpercentvalues": "0",
+                        "defaultcenterlabel": "Reported",
+                        "yaxisname": "Cases",
+                        "xaxisname":"Dates",
+                        "anchorradius": "5",
+                        "aligncaptionwithcanvas": "0",
+                        "captionpadding": "0",
+                        "decimals": "1",
+                        "theme" : "fusion",
+                                }
+                        df2['data']=[]
+                        datedf = line
+                        for key,value in datedf.items():
+                                d22={}
+                                d22['label']=key
+                                d22['value']=str(value)
+                                d22['color']="#FF5A87"
+                                df2['data'].append(d22)
+                        dTotal = FusionCharts("spline", "ex2" , "800", "390", "chart-2", "json",df2)
+                        dataSource = {}
+                        dataSource['chart'] = {
+                                "caption": "Covid-19 of Zone ",
+                                "subcaption":"Overview",
+                                "showValues": "1",
+                                "theme": "fusion"
+                                }
+                        dataSource['data'] = []
+                        for i,j in graph.places_piechart().items():
+                                data={}
+                                data['label']=str(i)
+                                data['value']=str(j)
+                                dataSource['data'].append(data)
 
-        covidpie = FusionCharts("pie2d","ex1","500","390","chart-1","json",dataSource)
-        ds={}
-        ds['chart']={
-              "caption": "Crime Analysis ",
-                "subcaption":"Overview",
-                "showValues": "1",
-                "theme": "fusion"  
-        }
-        ds['data']=[]
-        for i,j in graph.place_crimepie().items():
-                data={}
-                data['label']=str(i)
-                data['value']=str(j)
-                ds['data'].append(data)
-        crimepie = FusionCharts("pie3d","ex3","800","390","chart-3","json",ds)
+                        covidpie = FusionCharts("pie2d","ex1","500","390","chart-1","json",dataSource)
+                        ds={}
+                        ds['chart']={
+                        "caption": "Crime Analysis ",
+                                "subcaption":"Overview",
+                                "showValues": "1",
+                                "theme": "fusion"  
+                        }
+                        ds['data']=[]
+                        for i,j in graph.place_crimepie().items():
+                                data={}
+                                data['label']=str(i)
+                                data['value']=str(j)
+                                ds['data'].append(data)
+                        crimepie = FusionCharts("pie3d","ex3","800","390","chart-3","json",ds)
+                        query = request.GET.get('place', '')
+                        try:
+                                if query:
+                                        try:
+                                                return redirect(chart,Email=Email,location=query)
+                                        except:
+                                                return("/error/{Email}")
+                        except:
+                                return("/error/{Email}")
+        except:
+                return("/error/{Email}")
         return render(request,"admin/chart.html",{"places":mongo.places(),"rate":rate,'output2':dTotal.render(),"auth":a.authDetails(),"location":location,"group":member,"rating":rating,"output1":covidpie.render(),"crime":crimepie.render()})
         
         
@@ -251,12 +277,15 @@ def reportcase(request,Email):
         return render(request,"admin/caseform.html",{"auth":a.authDetails()})
 
 def table(request,Email):
-        a = AuthDetails(Email)
-        mongo=MongoData()
-        a = AuthDetails(Email)
-        group = groupdetails(a.authDetails()['GroupId'])
-        member = group.Groupmember()
-        table1=mongo.Table()
+        try:
+                a = AuthDetails(Email)
+                mongo=MongoData()
+                a = AuthDetails(Email)
+                group = groupdetails(a.authDetails()['GroupId'])
+                member = group.Groupmember()
+                table1=mongo.Table()
+        except:
+                return("/error/{Email}")
         return render(request,"admin/table.html",{"auth":a.authDetails(),"group":member,"table":table1})
 
 def wanted(request,Email):
@@ -268,22 +297,34 @@ def wanted(request,Email):
         return render(request,"admin/wanted.html",{"auth":a.authDetails(),"group":member})
         
 def mobileimages(request,Email,groupid,submail):
+        try:
+                a = AuthDetails(Email)
+                mongo = MongoData()
+                group = groupdetails(a.authDetails()['GroupId'])
+                member = group.Groupmember()
+                b = Location(groupid,submail)
+                if b.ImagesfromPhone() == None:
+                        messages.success(request,"No Images from Device")
+                if request.method == "POST":
+                        location = request.POST.get("place")
+                        if location.lower() == "forward":
+                                mongo.Imagesupload(data=a.authDetails(), location=b.getlocation(), images=b.ImagesfromPhone())
+                                messages.success(request,"Images Forward To Osint") 
+                try:
+                        query = request.GET.get('place', '')
+                        if query:
+                                try:
+                                        return redirect(chart,Email=Email,location=query)
+                                except:
+                                        return("/error/{Email}")
+                except:
+                        return("/error/{Email}")
+        except:
+                return("/error/{Email")
+        return render(request,"admin/mobile.html",{"auth":a.authDetails(),"group":member,"images":b.ImagesfromPhone(),"user":submail})
+
+def notfound(request,Email):
         a = AuthDetails(Email)
-        mongo = MongoData()
         group = groupdetails(a.authDetails()['GroupId'])
         member = group.Groupmember()
-        b = Location(groupid,submail)
-        if b.ImagesfromPhone() == None:
-                messages.success(request,"No Images from Device")
-        if request.method == "POST":
-                location = request.POST.get("place")
-                if location.lower() == "forward":
-                       mongo.Imagesupload(data=a.authDetails(), location=b.getlocation(), images=b.ImagesfromPhone())
-                       messages.success(request,"Images Forward To Osint") 
-        try:
-                query = request.GET.get('place', '')
-                if query:
-                        return redirect(chart,Email=Email,location=query)
-        except:
-                pass
-        return render(request,"admin/mobile.html",{"auth":a.authDetails(),"group":member,"images":b.ImagesfromPhone(),"user":submail})
+        return render(request, "admin/404.html",{"auth":a.authDetails(),"group":member})
